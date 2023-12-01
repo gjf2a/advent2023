@@ -1,19 +1,22 @@
-use advent_code_lib::{all_lines, simpler_main};
+use advent_code_lib::{all_lines, chooser_main, Part};
 use map_macro::hash_map;
 
 fn main() -> anyhow::Result<()> {
-    simpler_main(|filename| {
-        /*let part1 = all_lines(filename)?
-            .map(|line| calibration_num(line.as_str()))
-            .sum::<u64>();
-        println!("Part 1: {part1}");*/
-
-        let part2 = all_lines(filename)?
-            .inspect(|line| println!("{line} {}", words2digits(line.as_str())))
-            .map(|line| calibration_num(words2digits(line.as_str()).as_str()))
-            .inspect(|num| println!("{num}"))
-            .sum::<u64>();
-        println!("Part 2: {part2}");
+    chooser_main(|filename, part| {
+        match part {
+            Part::One => {
+                let part1 = all_lines(filename)?
+                    .map(|line| calibration_num(line.as_str()))
+                    .sum::<u64>();
+                println!("Part 1: {part1}");
+            }
+            Part::Two => {
+                let part2 = all_lines(filename)?
+                    .map(|line| calibration_num(words2digits(line.as_str()).as_str()))
+                    .sum::<u64>();
+                println!("Part 2: {part2}");
+            }
+        }
 
         Ok(())
     })
