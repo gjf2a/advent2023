@@ -1,0 +1,11 @@
+[package]
+name = "advent2023"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+advent_code_lib = {git = "https://github.com/gjf2a/advent_code_lib"}
+anyhow = "1"
+map-macro = "0.2.6"
