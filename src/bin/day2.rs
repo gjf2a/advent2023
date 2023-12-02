@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{cmp::max, collections::HashMap, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
 
@@ -32,7 +32,18 @@ fn main() -> anyhow::Result<()> {
                     .sum();
                 println!("Part 1: {part1}");
             }
-            Part::Two => todo!(),
+            Part::Two => {
+                let part2: usize = all_lines(filename)?
+                    .map(|line| {
+                        let rest = line.split(": ").skip(1).next().unwrap();
+                        rest.split("; ")
+                            .map(|c| c.parse::<ColorCombo>().unwrap())
+                            .fold(ColorCombo::default(), |c1, c2| c1.maxes(&c2))
+                            .power()
+                    })
+                    .sum();
+                println!("Part 2: {part2}");
+            }
         }
         Ok(())
     })
@@ -40,6 +51,14 @@ fn main() -> anyhow::Result<()> {
 
 struct ColorCombo {
     color2count: HashMap<String, usize>,
+}
+
+impl Default for ColorCombo {
+    fn default() -> Self {
+        Self {
+            color2count: Default::default(),
+        }
+    }
 }
 
 impl ColorCombo {
@@ -50,6 +69,27 @@ impl ColorCombo {
                 .get(k.as_str())
                 .map_or(false, |max| *max >= *v)
         })
+    }
+
+    fn count(&self, color: &str) -> usize {
+        *self.color2count.get(color).unwrap_or(&0)
+    }
+
+    fn maxes(&self, other: &ColorCombo) -> ColorCombo {
+        let mut result = Self::default();
+        for color in ["red", "green", "blue"] {
+            result
+                .color2count
+                .insert(color.to_owned(), max(self.count(color), other.count(color)));
+        }
+        result
+    }
+
+    fn power(&self) -> usize {
+        ["red", "green", "blue"]
+            .iter()
+            .map(|color| self.count(color))
+            .product()
     }
 }
 
