@@ -6,7 +6,7 @@ fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         match part {
             Part::One => {
-                let part1constraint = "12 red, 13 green, 14 blue".parse::<ColorCombo>()?;
+                let part1constraint = "12 red, 13 green, 14 blue".parse::<BagOfCubes>()?;
                 let part1: usize = all_lines(filename)?
                     .map(|line| {
                         let mut game_rest = line.split(": ");
@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
                         let rest = game_rest.next().unwrap();
                         let possible = rest
                             .split("; ")
-                            .map(|c| c.parse::<ColorCombo>().unwrap())
+                            .map(|c| c.parse::<BagOfCubes>().unwrap())
                             .all(|c| c.possible_given(&part1constraint));
                         if possible {
                             game_num
@@ -37,8 +37,8 @@ fn main() -> anyhow::Result<()> {
                     .map(|line| {
                         let rest = line.split(": ").skip(1).next().unwrap();
                         rest.split("; ")
-                            .map(|c| c.parse::<ColorCombo>().unwrap())
-                            .fold(ColorCombo::default(), |c1, c2| c1.maxes(&c2))
+                            .map(|c| c.parse::<BagOfCubes>().unwrap())
+                            .fold(BagOfCubes::default(), |c1, c2| c1.maxes(&c2))
                             .power()
                     })
                     .sum();
@@ -49,11 +49,11 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-struct ColorCombo {
+struct BagOfCubes {
     color2count: HashMap<String, usize>,
 }
 
-impl Default for ColorCombo {
+impl Default for BagOfCubes {
     fn default() -> Self {
         Self {
             color2count: Default::default(),
@@ -61,7 +61,7 @@ impl Default for ColorCombo {
     }
 }
 
-impl ColorCombo {
+impl BagOfCubes {
     fn possible_given(&self, constraint: &Self) -> bool {
         self.color2count.iter().all(|(k, v)| {
             constraint
@@ -75,7 +75,7 @@ impl ColorCombo {
         *self.color2count.get(color).unwrap_or(&0)
     }
 
-    fn maxes(&self, other: &ColorCombo) -> ColorCombo {
+    fn maxes(&self, other: &BagOfCubes) -> BagOfCubes {
         let mut result = Self::default();
         for color in ["red", "green", "blue"] {
             result
@@ -93,7 +93,7 @@ impl ColorCombo {
     }
 }
 
-impl FromStr for ColorCombo {
+impl FromStr for BagOfCubes {
     type Err = anyhow::Error;
 
     /// We expect a comma-separated list of counts and colors.
