@@ -4,17 +4,36 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
-        let part1constraint = "12 red, 13 blue, 14 green".parse::<ColorCombo>()?;
-        let part1: usize = all_lines(filename)?
-        .map(|line| {
-            let mut game_rest = line.split(": ");
-            let game = game_rest.next().unwrap();
-            let game_num = game.split_whitespace().skip(1).next().unwrap().parse::<usize>().unwrap();
-            let rest = game_rest.next().unwrap();
-            let possible = rest.split("; ").map(|c| c.parse::<ColorCombo>().unwrap()).all(|c| c.possible_given(&part1constraint));
-            if possible {game_num} else {0}
-        }).sum();
-        println!("Part 1: {part1}");
+        match part {
+            Part::One => {
+                let part1constraint = "12 red, 13 green, 14 blue".parse::<ColorCombo>()?;
+                let part1: usize = all_lines(filename)?
+                    .map(|line| {
+                        let mut game_rest = line.split(": ");
+                        let game = game_rest.next().unwrap();
+                        let game_num = game
+                            .split_whitespace()
+                            .skip(1)
+                            .next()
+                            .unwrap()
+                            .parse::<usize>()
+                            .unwrap();
+                        let rest = game_rest.next().unwrap();
+                        let possible = rest
+                            .split("; ")
+                            .map(|c| c.parse::<ColorCombo>().unwrap())
+                            .all(|c| c.possible_given(&part1constraint));
+                        if possible {
+                            game_num
+                        } else {
+                            0
+                        }
+                    })
+                    .sum();
+                println!("Part 1: {part1}");
+            }
+            Part::Two => todo!(),
+        }
         Ok(())
     })
 }
