@@ -9,16 +9,7 @@ fn main() -> anyhow::Result<()> {
                 let part1constraint = "12 red, 13 green, 14 blue".parse::<BagOfCubes>()?;
                 let part1: usize = all_lines(filename)?
                     .map(|line| {
-                        let mut game_rest = line.split(": ");
-                        let game = game_rest.next().unwrap();
-                        let game_num = game
-                            .split_whitespace()
-                            .skip(1)
-                            .next()
-                            .unwrap()
-                            .parse::<usize>()
-                            .unwrap();
-                        let rest = game_rest.next().unwrap();
+                        let (game_num, rest) = game_num_rest(line.as_str());
                         let possible = rest
                             .split("; ")
                             .map(|c| c.parse::<BagOfCubes>().unwrap())
@@ -35,7 +26,7 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 let part2: usize = all_lines(filename)?
                     .map(|line| {
-                        let rest = line.split(": ").skip(1).next().unwrap();
+                        let (_, rest) = game_num_rest(line.as_str());
                         rest.split("; ")
                             .map(|c| c.parse::<BagOfCubes>().unwrap())
                             .fold(BagOfCubes::default(), |c1, c2| c1.maxes(&c2))
@@ -47,6 +38,19 @@ fn main() -> anyhow::Result<()> {
         }
         Ok(())
     })
+}
+
+fn game_num_rest(line: &str) -> (usize, &str) {
+    let mut game_rest = line.split(": ");
+    let game = game_rest.next().unwrap();
+    let game_num = game
+        .split_whitespace()
+        .skip(1)
+        .next()
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
+    (game_num, game_rest.next().unwrap())
 }
 
 struct BagOfCubes {
