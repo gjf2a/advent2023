@@ -2,6 +2,8 @@ use std::{cmp::max, collections::HashMap, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
 
+const COLORS: [&'static str; 3] = ["red", "green", "blue"];
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         match part {
@@ -69,19 +71,17 @@ impl BagOfCubes {
 
     fn maxes(&self, other: &BagOfCubes) -> BagOfCubes {
         let mut result = Self::default();
-        for color in ["red", "green", "blue"] {
-            result
-                .color2count
-                .insert(color.to_owned(), max(self.count(color), other.count(color)));
+        for color in COLORS.iter() {
+            result.color2count.insert(
+                color.to_string(),
+                max(self.count(color), other.count(color)),
+            );
         }
         result
     }
 
     fn power(&self) -> usize {
-        ["red", "green", "blue"]
-            .iter()
-            .map(|color| self.count(color))
-            .product()
+        COLORS.iter().map(|color| self.count(color)).product()
     }
 }
 
