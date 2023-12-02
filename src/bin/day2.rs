@@ -8,18 +8,13 @@ fn main() -> anyhow::Result<()> {
             Part::One => {
                 let part1constraint = "12 red, 13 green, 14 blue".parse::<BagOfCubes>()?;
                 let part1: usize = all_lines(filename)?
-                    .map(|line| {
-                        let (game_num, rest) = game_num_rest(line.as_str());
-                        let possible = rest
-                            .split("; ")
+                    .map(|line| game_num_rest(line.as_str()))
+                    .filter(|(_, rest)| {
+                        rest.split("; ")
                             .map(|c| c.parse::<BagOfCubes>().unwrap())
-                            .all(|c| c.possible_given(&part1constraint));
-                        if possible {
-                            game_num
-                        } else {
-                            0
-                        }
+                            .all(|c| c.possible_given(&part1constraint))
                     })
+                    .map(|(game_num, _)| game_num)
                     .sum();
                 println!("Part 1: {part1}");
             }
@@ -40,7 +35,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn game_num_rest(line: &str) -> (usize, &str) {
+fn game_num_rest(line: &str) -> (usize, String) {
     let mut game_rest = line.split(": ");
     let game = game_rest.next().unwrap();
     let game_num = game
@@ -50,19 +45,12 @@ fn game_num_rest(line: &str) -> (usize, &str) {
         .unwrap()
         .parse::<usize>()
         .unwrap();
-    (game_num, game_rest.next().unwrap())
+    (game_num, game_rest.next().unwrap().to_owned())
 }
 
+#[derive(Default)]
 struct BagOfCubes {
     color2count: HashMap<String, usize>,
-}
-
-impl Default for BagOfCubes {
-    fn default() -> Self {
-        Self {
-            color2count: Default::default(),
-        }
-    }
 }
 
 impl BagOfCubes {
