@@ -9,7 +9,6 @@ fn main() -> anyhow::Result<()> {
         match part {
             Part::One => {
                 let parts = part_nums_from(&grid);
-                println!("{parts:?}");
                 let part1 = parts.iter().sum::<u64>();
                 println!("Part 1: {part1}");
             }
@@ -24,7 +23,8 @@ fn main() -> anyhow::Result<()> {
 fn part_nums_from(grid: &GridCharWorld) -> Vec<u64> {
     let mut result = Vec::new();
     let mut pending = Vec::new();
-    for (p, c) in grid.position_value_iter() {
+    for p in grid.position_iter() {
+        let c = grid.value(p).unwrap();
         if c.is_ascii_digit() {
             pending.push((p, c));
         } else if pending.len() > 0 {
@@ -36,7 +36,7 @@ fn part_nums_from(grid: &GridCharWorld) -> Vec<u64> {
     result
 }
 
-fn process_pending(result: &mut Vec<u64>, pending: &Vec<(&Position, &char)>, grid: &GridCharWorld) {
+fn process_pending(result: &mut Vec<u64>, pending: &Vec<(Position, char)>, grid: &GridCharWorld) {
     let value = num_from_pending(&pending);
     let symbols = adjacent_symbols(&pending, grid);
     if symbols.len() > 0 {
@@ -44,16 +44,16 @@ fn process_pending(result: &mut Vec<u64>, pending: &Vec<(&Position, &char)>, gri
     }
 }
 
-fn num_from_pending(pending: &Vec<(&Position, &char)>) -> u64 {
+fn num_from_pending(pending: &Vec<(Position, char)>) -> u64 {
     let mut result = 0;
     for (_,c) in pending.iter() {
         result *= 10;
-        result += **c as u64 - '0' as u64;
+        result += *c as u64 - '0' as u64;
     }
     result
 }
 
-fn adjacent_symbols(pending: &Vec<(&Position, &char)>, grid: &GridCharWorld) -> HashMap<Position, char> {
+fn adjacent_symbols(pending: &Vec<(Position, char)>, grid: &GridCharWorld) -> HashMap<Position, char> {
     let mut result = HashMap::new();
     for (p,_) in pending.iter() {
         for n in p.neighbors() {
