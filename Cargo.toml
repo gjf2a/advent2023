@@ -9,3 +9,4 @@ edition = "2021"
 advent_code_lib = {git = "https://github.com/gjf2a/advent_code_lib"}
 anyhow = "1"
 map-macro = "0.2.6"
+indexmap = "2.1.0"
