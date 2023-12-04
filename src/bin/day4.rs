@@ -5,8 +5,8 @@ use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
-        let lines: Vec<Line> = all_lines(filename)?
-            .map(|line| line.parse::<Line>().unwrap())
+        let lines: Vec<ScratchCard> = all_lines(filename)?
+            .map(|line| line.parse::<ScratchCard>().unwrap())
             .collect();
         match part {
             Part::One => {
@@ -19,12 +19,15 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-struct Line {
+struct CardCountTable {}
+
+struct ScratchCard {
+    card_num: usize,
     winning_numbers: IndexSet<u64>,
     numbers_in_hand: IndexSet<u64>,
 }
 
-impl Line {
+impl ScratchCard {
     fn num_match(&self) -> u32 {
         self.numbers_in_hand
             .intersection(&self.winning_numbers)
@@ -41,12 +44,20 @@ impl Line {
     }
 }
 
-impl FromStr for Line {
+impl FromStr for ScratchCard {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let colon = s.split(": ");
-        let mut bar = colon.skip(1).next().unwrap().split(" | ");
+        let mut colon = s.split(": ");
+        let card_num = colon
+            .next()
+            .unwrap()
+            .split_whitespace()
+            .skip(1)
+            .next()
+            .unwrap()
+            .parse::<usize>()?;
+        let mut bar = colon.next().unwrap().split(" | ");
         let winning_numbers = bar
             .next()
             .unwrap()
@@ -60,6 +71,7 @@ impl FromStr for Line {
             .map(|s| s.parse::<u64>().unwrap())
             .collect();
         Ok(Self {
+            card_num,
             winning_numbers,
             numbers_in_hand,
         })
