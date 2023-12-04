@@ -10,12 +10,12 @@ fn main() -> anyhow::Result<()> {
             .collect();
         match part {
             Part::One => {
-                let part1 = lines.iter().map(|line| line.part1()).sum::<u64>();
+                let part1 = lines.iter().map(|line| line.card_score()).sum::<u64>();
                 println!("Part 1: {part1}");
             }
             Part::Two => {
                 let count_table = CardCountTable::new(&lines);
-                println!("Part 2: {}", count_table.part2());
+                println!("Part 2: {}", count_table.total_scratch_cards());
             }
         }
         Ok(())
@@ -39,7 +39,7 @@ impl CardCountTable {
         Self { card_counts }
     }
 
-    fn part2(&self) -> u64 {
+    fn total_scratch_cards(&self) -> u64 {
         self.card_counts.iter().sum()
     }
 }
@@ -56,7 +56,7 @@ impl ScratchCard {
             .count() as u32
     }
 
-    fn part1(&self) -> u64 {
+    fn card_score(&self) -> u64 {
         let num_match = self.num_match();
         if num_match >= 1 {
             2_u64.pow(num_match - 1)
