@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, cmp::min};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
@@ -13,13 +13,34 @@ fn main() -> anyhow::Result<()> {
                 let part1 = lines.iter().map(|line| line.part1()).sum::<u64>();
                 println!("Part 1: {part1}");
             }
-            Part::Two => {}
+            Part::Two => {
+                let count_table = CardCountTable::new(&lines);
+                println!("Part 2: {}", count_table.part2());
+            }
         }
         Ok(())
     })
 }
 
-struct CardCountTable {}
+struct CardCountTable {
+    card_counts: Vec<u64>
+}
+
+impl CardCountTable {
+    fn new(cards: &Vec<ScratchCard>) -> Self {
+        let mut card_counts: Vec<u64> = std::iter::repeat(0).take(cards.len() + 1).collect();
+        for i in (0..cards.len()).rev() {
+            let num_matches = cards[i].num_match() as usize;
+            let end = min(i + num_matches + 1, card_counts.len());
+            card_counts[i] = ((i + 1)..end).map(|j| card_counts[j]).sum();
+        }
+        Self {card_counts}
+    }
+
+    fn part2(&self) -> u64 {
+        self.card_counts.iter().sum()
+    }
+}
 
 struct ScratchCard {
     card_num: usize,
