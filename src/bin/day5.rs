@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn seed_locator(mut seeds: IndexSet<u64>, mut lines: impl Iterator<Item=String>) -> anyhow::Result<u64> {
+fn seed_locator(mut seeds: IndexSet<Interval>, mut lines: impl Iterator<Item=String>) -> anyhow::Result<u64> {
     let mut mapped_seeds = IndexSet::new();
     while let Some(line) = lines.next() {
         match line.chars().next() {
@@ -42,25 +42,23 @@ fn seed_locator(mut seeds: IndexSet<u64>, mut lines: impl Iterator<Item=String>)
     Ok(seeds.iter().min().copied().unwrap())
 }
 
-fn get_seeds(line: String) -> IndexSet<u64> {
+fn get_seeds(line: String) -> IndexSet<Interval> {
     line.split_whitespace()
         .skip(1)
-        .map(|n| n.parse::<u64>().unwrap())
+        .map(|n| Interval::singleton(n.parse::<u64>().unwrap()))
         .collect()
 }
 
-fn get_many_seeds(line: String) -> IndexSet<u64> {
+fn get_many_seeds(line: String) -> IndexSet<Interval> {
     let mut result = IndexSet::new();
     let seed_nums = get_seeds(line).iter().map(|n| *n).collect::<Vec<_>>();
     for i in (0..seed_nums.len()).step_by(2) {
-        for n in seed_nums[i]..seed_nums[i] + seed_nums[i + 1] {
-            result.insert(n);
-        }
+        result.insert(Interval {start: seed_nums[i].start, length: seed_nums[i + 1].start});
     }
     result
 }
 
-fn finish_mapping(seeds: &mut IndexSet<u64>, mapped_seeds: &mut IndexSet<u64>) {
+fn finish_mapping(seeds: &mut IndexSet<Interval>, mapped_seeds: &mut IndexSet<Interval>) {
     for seed in seeds.drain(..) {
         mapped_seeds.insert(seed);
     }
@@ -68,14 +66,28 @@ fn finish_mapping(seeds: &mut IndexSet<u64>, mapped_seeds: &mut IndexSet<u64>) {
     *mapped_seeds = IndexSet::new();
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+struct Interval {
+    start: u64,
+    length: u64,
+}
+
+impl Interval {
+    fn singleton(value: u64) -> Self {
+        Self {start: value, length: 1}
+    }
+    fn remap(&mut self, new_start: u64) {
+        self.start = new_start;
+    }
+}
+
 struct Mapping {
-    destination: u64,
-    source: u64,
-    range: u64,
+    source: Interval,
+    destination: Interval,
 }
 
 impl Mapping {
-    fn remap(&self, prev: &mut IndexSet<u64>, next: &mut IndexSet<u64>) {
+    fn remap(&self, prev: &mut IndexSet<Interval>, next: &mut IndexSet<u64>) {
         let start_count = prev.len() + next.len();
         let mappings = prev
             .iter()
@@ -102,13 +114,12 @@ impl FromStr for Mapping {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut nums = s.split_whitespace();
-        let destination = nums.next().unwrap().parse()?;
-        let source = nums.next().unwrap().parse()?;
-        let range = nums.next().unwrap().parse()?;
+        let destination = nums.next().unwrap().parse::<u64>()?;
+        let source = nums.next().unwrap().parse::<u64>()?;
+        let length = nums.next().unwrap().parse::<u64>()?;
         Ok(Self {
-            destination,
-            source,
-            range,
+            destination: Interval {start: destination, length},
+            source: Interval {start: source, length}
         })
     }
 }
