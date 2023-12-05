@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    cmp::{max, min},
+    str::FromStr,
+};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
@@ -23,7 +26,10 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn seed_locator(mut seeds: IndexSet<Interval>, mut lines: impl Iterator<Item=String>) -> anyhow::Result<u64> {
+fn seed_locator(
+    mut seeds: IndexSet<Interval>,
+    mut lines: impl Iterator<Item = String>,
+) -> anyhow::Result<u64> {
     let mut mapped_seeds = IndexSet::new();
     while let Some(line) = lines.next() {
         match line.chars().next() {
@@ -53,7 +59,10 @@ fn get_many_seeds(line: String) -> IndexSet<Interval> {
     let mut result = IndexSet::new();
     let seed_nums = get_seeds(line).iter().map(|n| *n).collect::<Vec<_>>();
     for i in (0..seed_nums.len()).step_by(2) {
-        result.insert(Interval {start: seed_nums[i].start, length: seed_nums[i + 1].start});
+        result.insert(Interval {
+            start: seed_nums[i].start,
+            length: seed_nums[i + 1].start,
+        });
     }
     result
 }
@@ -74,10 +83,35 @@ struct Interval {
 
 impl Interval {
     fn singleton(value: u64) -> Self {
-        Self {start: value, length: 1}
+        Self {
+            start: value,
+            length: 1,
+        }
     }
+
     fn remap(&mut self, new_start: u64) {
         self.start = new_start;
+    }
+
+    fn within(&self, value: u64) -> bool {
+        (self.start..self.start + self.length).contains(&value)
+    }
+
+    fn end(&self) -> u64 {
+        self.start + self.length - 1
+    }
+
+    fn intersection(&self, other: &Interval) -> Option<Interval> {
+        if other.within(self.end()) || self.within(other.end()) {
+            let start = max(self.start, other.start);
+            let end = min(self.end(), other.end());
+            Some(Interval {
+                start,
+                length: end - start + 1,
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -87,7 +121,7 @@ struct Mapping {
 }
 
 impl Mapping {
-    fn remap(&self, prev: &mut IndexSet<Interval>, next: &mut IndexSet<u64>) {
+    fn remap(&self, prev: &mut IndexSet<Interval>, next: &mut IndexSet<Interval>) {
         let start_count = prev.len() + next.len();
         let mappings = prev
             .iter()
@@ -95,20 +129,35 @@ impl Mapping {
             .collect::<Vec<_>>();
         for (prev_num, next_num) in mappings {
             prev.remove(&prev_num);
-            next.insert(next_num);
+            prev.insert(next_num.unmoved);
+            next.insert(next_num.moved);
         }
         assert_eq!(start_count, prev.len() + next.len());
     }
 
-    fn mapping(&self, value: Interval) -> Remapping {
-        if (self.source..(self.source + self.range)).contains(&value) {
-            Some(value + self.destination - self.source)
-        } else {
-            None
-        }
+    fn mapping(&self, value: Interval) -> Option<Remapping> {
+        self.source.intersection(&value).map(|intersection| {
+            let length = value.length - intersection.length;
+            let unmoved = if intersection.start == value.start {
+                Interval {
+                    start: intersection.end() + 1,
+                    length,
+                }
+            } else {
+                Interval {
+                    start: value.start,
+                    length,
+                }
+            };
+            Remapping {
+                moved: intersection,
+                unmoved,
+            }
+        })
     }
 }
 
+#[derive(Copy, Clone)]
 struct Remapping {
     moved: Interval,
     unmoved: Interval,
@@ -123,8 +172,31 @@ impl FromStr for Mapping {
         let source = nums.next().unwrap().parse::<u64>()?;
         let length = nums.next().unwrap().parse::<u64>()?;
         Ok(Self {
-            destination: Interval {start: destination, length},
-            source: Interval {start: source, length}
+            destination: Interval {
+                start: destination,
+                length,
+            },
+            source: Interval {
+                start: source,
+                length,
+            },
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Interval;
+
+    #[test]
+    fn interval_test() {
+        let in1 = Interval {
+            start: 10,
+            length: 5,
+        };
+        let in2 = Interval {
+            start: 12,
+            length: 10,
+        };
     }
 }
