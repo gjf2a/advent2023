@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use advent_code_lib::{chooser_main, all_lines, Part};
+use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
@@ -10,35 +10,35 @@ fn main() -> anyhow::Result<()> {
                 let mut lines = all_lines(filename)?;
                 let mut seeds = get_seeds(lines.next().unwrap());
                 lines.next().unwrap();
-                let num_seeds = seeds.len();
-                println!("{num_seeds} seeds");
                 let mut mapped_seeds = IndexSet::new();
                 while let Some(line) = lines.next() {
                     match line.chars().next() {
-                        None => {
-                            finish_mapping(&mut seeds, &mut mapped_seeds);
-                        }
+                        None => finish_mapping(&mut seeds, &mut mapped_seeds),
                         Some(c) => match c {
-                            '0'..='9' => {line.parse::<Mapping>()?.remap(&mut seeds, &mut mapped_seeds);}
+                            '0'..='9' => {
+                                line.parse::<Mapping>()?
+                                    .remap(&mut seeds, &mut mapped_seeds);
+                            }
                             'a'..='z' => {}
-                            _ => return Err(anyhow::anyhow!("Illegal line start character {c}"))
-                        }
+                            _ => return Err(anyhow::anyhow!("Illegal line start character {c}")),
+                        },
                     }
                 }
                 finish_mapping(&mut seeds, &mut mapped_seeds);
                 let part1 = seeds.iter().min().copied().unwrap();
                 println!("Part 1: {part1}");
             }
-            Part::Two => {
-                
-            }
+            Part::Two => {}
         }
         Ok(())
     })
 }
 
 fn get_seeds(line: String) -> IndexSet<u64> {
-    line.split_whitespace().skip(1).map(|n| n.parse::<u64>().unwrap()).collect()
+    line.split_whitespace()
+        .skip(1)
+        .map(|n| n.parse::<u64>().unwrap())
+        .collect()
 }
 
 fn finish_mapping(seeds: &mut IndexSet<u64>, mapped_seeds: &mut IndexSet<u64>) {
@@ -58,7 +58,10 @@ struct Mapping {
 impl Mapping {
     fn remap(&self, prev: &mut IndexSet<u64>, next: &mut IndexSet<u64>) {
         let start_count = prev.len() + next.len();
-        let mappings = prev.iter().filter_map(|n| self.mapping(*n).map(|m| (*n, m))).collect::<Vec<_>>();
+        let mappings = prev
+            .iter()
+            .filter_map(|n| self.mapping(*n).map(|m| (*n, m)))
+            .collect::<Vec<_>>();
         for (prev_num, next_num) in mappings {
             prev.remove(&prev_num);
             next.insert(next_num);
@@ -83,6 +86,10 @@ impl FromStr for Mapping {
         let destination = nums.next().unwrap().parse()?;
         let source = nums.next().unwrap().parse()?;
         let range = nums.next().unwrap().parse()?;
-        Ok(Self {destination, source, range})
+        Ok(Self {
+            destination,
+            source,
+            range,
+        })
     }
 }
