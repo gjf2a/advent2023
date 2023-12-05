@@ -100,13 +100,18 @@ impl Mapping {
         assert_eq!(start_count, prev.len() + next.len());
     }
 
-    fn mapping(&self, value: u64) -> Option<u64> {
+    fn mapping(&self, value: Interval) -> Remapping {
         if (self.source..(self.source + self.range)).contains(&value) {
             Some(value + self.destination - self.source)
         } else {
             None
         }
     }
+}
+
+struct Remapping {
+    moved: Interval,
+    unmoved: Interval,
 }
 
 impl FromStr for Mapping {
