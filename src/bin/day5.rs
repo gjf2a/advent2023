@@ -8,30 +8,38 @@ fn main() -> anyhow::Result<()> {
         match part {
             Part::One => {
                 let mut lines = all_lines(filename)?;
-                let mut seeds = get_seeds(lines.next().unwrap());
+                let seeds = get_seeds(lines.next().unwrap());
                 lines.next().unwrap();
-                let mut mapped_seeds = IndexSet::new();
-                while let Some(line) = lines.next() {
-                    match line.chars().next() {
-                        None => finish_mapping(&mut seeds, &mut mapped_seeds),
-                        Some(c) => match c {
-                            '0'..='9' => {
-                                line.parse::<Mapping>()?
-                                    .remap(&mut seeds, &mut mapped_seeds);
-                            }
-                            'a'..='z' => {}
-                            _ => return Err(anyhow::anyhow!("Illegal line start character {c}")),
-                        },
-                    }
-                }
-                finish_mapping(&mut seeds, &mut mapped_seeds);
-                let part1 = seeds.iter().min().copied().unwrap();
-                println!("Part 1: {part1}");
+                println!("Part 1: {}", seed_locator(seeds, lines)?);
             }
-            Part::Two => {}
+            Part::Two => {
+                let mut lines = all_lines(filename)?;
+                let seeds = get_many_seeds(lines.next().unwrap());
+                lines.next().unwrap();
+                println!("Part 2: {}", seed_locator(seeds, lines)?);
+            }
         }
         Ok(())
     })
+}
+
+fn seed_locator(mut seeds: IndexSet<u64>, mut lines: impl Iterator<Item=String>) -> anyhow::Result<u64> {
+    let mut mapped_seeds = IndexSet::new();
+    while let Some(line) = lines.next() {
+        match line.chars().next() {
+            None => finish_mapping(&mut seeds, &mut mapped_seeds),
+            Some(c) => match c {
+                '0'..='9' => {
+                    line.parse::<Mapping>()?
+                        .remap(&mut seeds, &mut mapped_seeds);
+                }
+                'a'..='z' => {}
+                _ => return Err(anyhow::anyhow!("Illegal line start character {c}")),
+            },
+        }
+    }
+    finish_mapping(&mut seeds, &mut mapped_seeds);
+    Ok(seeds.iter().min().copied().unwrap())
 }
 
 fn get_seeds(line: String) -> IndexSet<u64> {
@@ -39,6 +47,17 @@ fn get_seeds(line: String) -> IndexSet<u64> {
         .skip(1)
         .map(|n| n.parse::<u64>().unwrap())
         .collect()
+}
+
+fn get_many_seeds(line: String) -> IndexSet<u64> {
+    let mut result = IndexSet::new();
+    let seed_nums = get_seeds(line).iter().map(|n| *n).collect::<Vec<_>>();
+    for i in (0..seed_nums.len()).step_by(2) {
+        for n in seed_nums[i]..seed_nums[i] + seed_nums[i + 1] {
+            result.insert(n);
+        }
+    }
+    result
 }
 
 fn finish_mapping(seeds: &mut IndexSet<u64>, mapped_seeds: &mut IndexSet<u64>) {
