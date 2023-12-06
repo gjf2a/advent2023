@@ -45,7 +45,6 @@ fn seed_locator(
         }
     }
     finish_mapping(&mut seeds, &mut mapped_seeds);
-    println!("{seeds:?}");
     Ok(seeds.iter().map(|s| s.start).min().unwrap())
 }
 
@@ -90,10 +89,6 @@ impl Interval {
         }
     }
 
-    fn remap(&mut self, new_start: u64) {
-        self.start = new_start;
-    }
-
     fn within(&self, value: u64) -> bool {
         (self.start..self.start + self.length).contains(&value)
     }
@@ -123,7 +118,6 @@ struct Mapping {
 
 impl Mapping {
     fn remap(&self, prev: &mut IndexSet<Interval>, next: &mut IndexSet<Interval>) {
-        let start_count = prev.len() + next.len();
         let mappings = prev
             .iter()
             .filter_map(|n| self.mapping(*n).map(|m| (*n, m)))
@@ -152,7 +146,10 @@ impl Mapping {
                 }
             };
             Remapping {
-                moved: Interval {start: intersection.start + self.destination.start - self.source.start, length: intersection.length},
+                moved: Interval {
+                    start: intersection.start + self.destination.start - self.source.start,
+                    length: intersection.length,
+                },
                 unmoved,
             }
         })
