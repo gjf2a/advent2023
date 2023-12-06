@@ -3,17 +3,15 @@ use anyhow::Result;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
-        let races = Race::races(filename)?;
         match part {
             Part::One => {
-                let part1 = races
-                    .iter()
-                    .map(|r| r.ways_to_beat_record())
-                    //.inspect(|n| {println!("ways to win: {n}")})
-                    .product::<usize>();
-                println!("Part 1: {part1}");
+                let races = Race::races(filename)?;
+                println!("Part 1: {}", Race::score(&races));
             }
-            Part::Two => {}
+            Part::Two => {
+                let race = Race::race(filename)?;
+                println!("Part 2: {}", race.ways_to_beat_record());
+            }
         }
         Ok(())
     })
@@ -41,18 +39,27 @@ impl Race {
         Ok(result)
     }
 
+    fn race(filename: &str) -> Result<Self> {
+        let mut lines = all_lines(filename)?;
+        let time = kerning_fixed_num_from(lines.next().unwrap());
+        let distance = kerning_fixed_num_from(lines.next().unwrap());
+        Ok(Self {time, distance})
+    }
+
     fn distance_traveled(&self, hold_time: u64) -> u64 {
         let race_time = self.time - hold_time;
         race_time * hold_time
     }
 
     fn ways_to_beat_record(&self) -> usize {
-        //println!("Race: {self:?}");
         (0..=self.time)
             .map(|t| self.distance_traveled(t))
-            //.inspect(|t| {println!("time: {t}");})
             .filter(|d| *d > self.distance)
             .count()
+    }
+
+    fn score(races: &Vec<Self>) -> usize {
+        races.iter().map(|r| r.ways_to_beat_record()).product()
     }
 }
 
@@ -61,4 +68,8 @@ fn nums_from(line: String) -> Vec<u64> {
         .skip(1)
         .map(|s| s.parse::<u64>().unwrap())
         .collect()
+}
+
+fn kerning_fixed_num_from(line: String) -> u64 {
+    line.split_whitespace().skip(1).collect::<String>().parse().unwrap()
 }
