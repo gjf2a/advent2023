@@ -45,7 +45,7 @@ fn seed_locator(
         }
     }
     finish_mapping(&mut seeds, &mut mapped_seeds);
-    Ok(seeds.iter().min().copied().unwrap())
+    Ok(seeds.iter().map(|s| s.start).min().unwrap())
 }
 
 fn get_seeds(line: String) -> IndexSet<Interval> {
@@ -75,7 +75,7 @@ fn finish_mapping(seeds: &mut IndexSet<Interval>, mapped_seeds: &mut IndexSet<In
     *mapped_seeds = IndexSet::new();
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 struct Interval {
     start: u64,
     length: u64,
@@ -101,11 +101,12 @@ impl Interval {
         self.start + self.length - 1
     }
 
-    fn intersection(&self, other: &Interval) -> Option<Interval> {
+    fn intersection(&self, other: &Self) -> Option<Self> {
         if other.within(self.end()) || self.within(other.end()) {
             let start = max(self.start, other.start);
             let end = min(self.end(), other.end());
-            Some(Interval {
+            println!("{self:?} {other:?} start: {start} end: {end}");
+            Some(Self {
                 start,
                 length: end - start + 1,
             })
@@ -129,10 +130,11 @@ impl Mapping {
             .collect::<Vec<_>>();
         for (prev_num, next_num) in mappings {
             prev.remove(&prev_num);
-            prev.insert(next_num.unmoved);
+            if next_num.unmoved.length > 0 {
+                prev.insert(next_num.unmoved);
+            }
             next.insert(next_num.moved);
         }
-        assert_eq!(start_count, prev.len() + next.len());
     }
 
     fn mapping(&self, value: Interval) -> Option<Remapping> {
@@ -149,6 +151,7 @@ impl Mapping {
                     length,
                 }
             };
+            println!("self.source: {:?} value: {value:?} intersection: {intersection:?} unmoved: {unmoved:?}", self.source);
             Remapping {
                 moved: intersection,
                 unmoved,
