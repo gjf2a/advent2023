@@ -117,17 +117,17 @@ struct Mapping {
 }
 
 impl Mapping {
-    fn remap(&self, prev: &mut IndexSet<Interval>, next: &mut IndexSet<Interval>) {
-        let mappings = prev
+    fn remap(&self, seeds: &mut IndexSet<Interval>, mapped_seeds: &mut IndexSet<Interval>) {
+        let mappings = seeds
             .iter()
             .filter_map(|n| self.mapping(*n).map(|m| (*n, m)))
             .collect::<Vec<_>>();
         for (prev_num, next_num) in mappings {
-            prev.remove(&prev_num);
+            seeds.remove(&prev_num);
             if next_num.unmoved.length > 0 {
-                prev.insert(next_num.unmoved);
+                seeds.insert(next_num.unmoved);
             }
-            next.insert(next_num.moved);
+            mapped_seeds.insert(next_num.moved);
         }
     }
 
