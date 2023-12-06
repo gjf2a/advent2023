@@ -45,6 +45,7 @@ fn seed_locator(
         }
     }
     finish_mapping(&mut seeds, &mut mapped_seeds);
+    println!("{seeds:?}");
     Ok(seeds.iter().map(|s| s.start).min().unwrap())
 }
 
@@ -105,7 +106,6 @@ impl Interval {
         if other.within(self.end()) || self.within(other.end()) {
             let start = max(self.start, other.start);
             let end = min(self.end(), other.end());
-            println!("{self:?} {other:?} start: {start} end: {end}");
             Some(Self {
                 start,
                 length: end - start + 1,
@@ -151,9 +151,8 @@ impl Mapping {
                     length,
                 }
             };
-            println!("self.source: {:?} value: {value:?} intersection: {intersection:?} unmoved: {unmoved:?}", self.source);
             Remapping {
-                moved: intersection,
+                moved: Interval {start: intersection.start + self.destination.start - self.source.start, length: intersection.length},
                 unmoved,
             }
         })
