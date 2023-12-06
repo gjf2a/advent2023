@@ -134,23 +134,17 @@ impl Mapping {
     fn mapping(&self, value: Interval) -> Option<Remapping> {
         self.source.intersection(&value).map(|intersection| {
             let length = value.length - intersection.length;
-            let unmoved = if intersection.start == value.start {
-                Interval {
-                    start: intersection.end() + 1,
-                    length,
-                }
+            let start = if intersection.start == value.start {
+                intersection.end() + 1
             } else {
-                Interval {
-                    start: value.start,
-                    length,
-                }
+                value.start
             };
             Remapping {
                 moved: Interval {
                     start: intersection.start + self.destination.start - self.source.start,
                     length: intersection.length,
                 },
-                unmoved,
+                unmoved: Interval { start, length },
             }
         })
     }
