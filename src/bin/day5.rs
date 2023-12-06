@@ -182,20 +182,3 @@ impl FromStr for Mapping {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::Interval;
-
-    #[test]
-    fn interval_test() {
-        let in1 = Interval {
-            start: 10,
-            length: 5,
-        };
-        let in2 = Interval {
-            start: 12,
-            length: 10,
-        };
-    }
-}
