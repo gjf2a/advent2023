@@ -69,13 +69,13 @@ impl Hand {
 
     fn level(&self) -> HandLevel {
         if self.use_joker {
-            return self
-                .all_joker_variants()
-                .iter()
-                .map(|v| v.level())
-                .max()
-                .unwrap();
+            self.joker_level()
+        } else {
+            self.basic_level()
         }
+    }
+
+    fn basic_level(&self) -> HandLevel {
         let mut hist = HashHistogram::new();
         for card in self.cards.iter() {
             hist.bump(card);
@@ -95,28 +95,38 @@ impl Hand {
             _ => HandLevel::HighCard,
         }
     }
+
+    fn joker_level(&self) -> HandLevel {
+        self.all_joker_variants()
+            .iter()
+            .map(|v| v.level())
+            .max()
+            .unwrap()
+    }
+
+    fn first_card_ordering(&self, other: &Self) -> std::cmp::Ordering {
+        for (self_card, other_card) in self.cards.iter().zip(other.cards.iter()) {
+            if self.use_joker {
+                if *self_card == Card::Jack && *other_card != Card::Jack {
+                    return Ordering::Less;
+                } else if *self_card != Card::Jack && *other_card == Card::Jack {
+                    return Ordering::Greater;
+                }
+            }
+            let card_cmp = self_card.cmp(other_card);
+            if card_cmp != Ordering::Equal {
+                return card_cmp;
+            }
+        }
+        Ordering::Equal
+    }
 }
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let level_cmp = self.level().cmp(&other.level());
         match level_cmp {
-            std::cmp::Ordering::Equal => {
-                for (self_card, other_card) in self.cards.iter().zip(other.cards.iter()) {
-                    if self.use_joker {
-                        if *self_card == Card::Jack && *other_card != Card::Jack {
-                            return Some(Ordering::Less);
-                        } else if *self_card != Card::Jack && *other_card == Card::Jack {
-                            return Some(Ordering::Greater);
-                        }
-                    }
-                    let card_cmp = self_card.cmp(other_card);
-                    if card_cmp != Ordering::Equal {
-                        return Some(card_cmp);
-                    }
-                }
-                Some(Ordering::Equal)
-            }
+            std::cmp::Ordering::Equal => Some(self.first_card_ordering(other)),
             _ => Some(level_cmp),
         }
     }
