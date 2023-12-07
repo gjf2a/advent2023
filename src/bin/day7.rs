@@ -6,29 +6,27 @@ use hash_histogram::HashHistogram;
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut hands_with_bids = hands_with_bids(filename)?;
-        hands_with_bids.sort();
-        match part {
-            Part::One => {
-                let mut part1 = 0;
-                for (i, (_, bid)) in hands_with_bids.iter().enumerate() {
-                    part1 += (i + 1) * *bid;
-                }
-                println!("Part 1: {part1}");
-            }
-            Part::Two => {
-                println!("Part 2: {}", 0);
+        if part == Part::Two {
+            for (hand, _) in hands_with_bids.iter_mut() {
+                hand.use_joker = true;
             }
         }
+        hands_with_bids.sort();
+        let mut score = 0;
+        for (i, (_, bid)) in hands_with_bids.iter().enumerate() {
+            score += (i + 1) as u64 * *bid;
+        }
+        println!("Score: {score}");
         Ok(())
     })
 }
 
-fn hands_with_bids(filename: &str) -> anyhow::Result<Vec<(Hand, usize)>> {
+fn hands_with_bids(filename: &str) -> anyhow::Result<Vec<(Hand, u64)>> {
     let mut result = vec![];
     for line in all_lines(filename)? {
         let mut line_parts = line.split_whitespace();
         let hand = line_parts.next().unwrap().parse::<Hand>()?;
-        let bid = line_parts.next().unwrap().parse::<usize>()?;
+        let bid = line_parts.next().unwrap().parse::<u64>()?;
         result.push((hand, bid));
     }
     Ok(result)
@@ -48,6 +46,7 @@ enum HandLevel {
 #[derive(Copy, Clone, Eq, PartialEq, Ord)]
 struct Hand {
     cards: [Card; 5],
+    use_joker: bool,
 }
 
 impl Hand {
@@ -100,7 +99,7 @@ impl FromStr for Hand {
             for (i, c) in s.chars().enumerate() {
                 cards[i] = Card::try_from(c)?;
             }
-            Ok(Self { cards })
+            Ok(Self { cards, use_joker: false })
         } else {
             Err(anyhow::anyhow!("Hand contains {} cards, not 5", s.len()))
         }

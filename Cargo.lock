@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "advent_code_lib"
 version = "0.18.11"
-source = "git+https://github.com/gjf2a/advent_code_lib#a5fc63cda9471481d993029c2cb4d06ea4622495"
+source = "git+https://github.com/gjf2a/advent_code_lib#cb0ad9cf5d8b9c189f823a574e8be0d570615a73"
 dependencies = [
  "anyhow",
  "bare_metal_modulo",
