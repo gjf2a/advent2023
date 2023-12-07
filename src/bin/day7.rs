@@ -1,0 +1,149 @@
+use std::{cmp::Ordering, str::FromStr};
+
+use advent_code_lib::{all_lines, chooser_main, Part};
+use hash_histogram::HashHistogram;
+
+fn main() -> anyhow::Result<()> {
+    chooser_main(|filename, part| {
+        let mut hands_with_bids = hands_with_bids(filename)?;
+        hands_with_bids.sort();
+        match part {
+            Part::One => {
+                let mut part1 = 0;
+                for (i, (_, bid)) in hands_with_bids.iter().enumerate() {
+                    part1 += (i + 1) * *bid;
+                }
+                println!("Part 1: {part1}");
+            }
+            Part::Two => {
+                println!("Part 2: {}", 0);
+            }
+        }
+        Ok(())
+    })
+}
+
+fn hands_with_bids(filename: &str) -> anyhow::Result<Vec<(Hand, usize)>> {
+    let mut result = vec![];
+    for line in all_lines(filename)? {
+        let mut line_parts = line.split_whitespace();
+        let hand = line_parts.next().unwrap().parse::<Hand>()?;
+        let bid = line_parts.next().unwrap().parse::<usize>()?;
+        result.push((hand, bid));
+    }
+    Ok(result)
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Debug)]
+enum HandLevel {
+    HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord)]
+struct Hand {
+    cards: [Card; 5],
+}
+
+impl Hand {
+    fn level(&self) -> HandLevel {
+        let mut hist = HashHistogram::new();
+        for card in self.cards.iter() {
+            hist.bump(card);
+        }
+        let ranking = hist.ranking_with_counts();
+        match ranking[0].1 {
+            5 => HandLevel::FiveOfAKind,
+            4 => HandLevel::FourOfAKind,
+            3 => match ranking[1].1 {
+                2 => HandLevel::FullHouse,
+                _ => HandLevel::ThreeOfAKind,
+            },
+            2 => match ranking[1].1 {
+                2 => HandLevel::TwoPair,
+                _ => HandLevel::OnePair,
+            },
+            _ => HandLevel::HighCard,
+        }
+    }
+}
+
+impl PartialOrd for Hand {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let level_cmp = self.level().cmp(&other.level());
+        match level_cmp {
+            std::cmp::Ordering::Equal => {
+                for (self_card, other_card) in self.cards.iter().zip(other.cards.iter()) {
+                    let card_cmp = self_card.cmp(other_card);
+                    if card_cmp != Ordering::Equal {
+                        return Some(card_cmp);
+                    }
+                }
+                Some(Ordering::Equal)
+            }
+            _ => Some(level_cmp),
+        }
+    }
+}
+
+impl FromStr for Hand {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() == 5 {
+            let mut cards = [Card::Two; 5];
+            for (i, c) in s.chars().enumerate() {
+                cards[i] = Card::try_from(c)?;
+            }
+            Ok(Self { cards })
+        } else {
+            Err(anyhow::anyhow!("Hand contains {} cards, not 5", s.len()))
+        }
+    }
+}
+
+#[derive(Default, Copy, Clone, Eq, PartialEq, Debug, PartialOrd, Ord, Hash)]
+enum Card {
+    #[default]
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King,
+    Ace,
+}
+
+impl TryFrom<char> for Card {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> anyhow::Result<Self, Self::Error> {
+        match value {
+            '2' => Ok(Self::Two),
+            '3' => Ok(Self::Three),
+            '4' => Ok(Self::Four),
+            '5' => Ok(Self::Five),
+            '6' => Ok(Self::Six),
+            '7' => Ok(Self::Seven),
+            '8' => Ok(Self::Eight),
+            '9' => Ok(Self::Nine),
+            'T' => Ok(Self::Ten),
+            'J' => Ok(Self::Jack),
+            'Q' => Ok(Self::Queen),
+            'K' => Ok(Self::King),
+            'A' => Ok(Self::Ace),
+            _ => Err(anyhow::anyhow!("Unmatched character: '{value}'")),
+        }
+    }
+}

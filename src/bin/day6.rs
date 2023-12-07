@@ -43,7 +43,7 @@ impl Race {
         let mut lines = all_lines(filename)?;
         let time = kerning_fixed_num_from(lines.next().unwrap());
         let distance = kerning_fixed_num_from(lines.next().unwrap());
-        Ok(Self {time, distance})
+        Ok(Self { time, distance })
     }
 
     fn distance_traveled(&self, hold_time: u64) -> u64 {
@@ -71,5 +71,9 @@ fn nums_from(line: String) -> Vec<u64> {
 }
 
 fn kerning_fixed_num_from(line: String) -> u64 {
-    line.split_whitespace().skip(1).collect::<String>().parse().unwrap()
+    line.split_whitespace()
+        .skip(1)
+        .collect::<String>()
+        .parse()
+        .unwrap()
 }

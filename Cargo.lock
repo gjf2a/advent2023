@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "advent_code_lib",
  "anyhow",
+ "hash_histogram 0.8.0",
  "indexmap 2.1.0",
  "map-macro",
 ]
@@ -22,7 +23,7 @@ dependencies = [
  "common_macros",
  "derive-getters",
  "enum-iterator",
- "hash_histogram",
+ "hash_histogram 0.7.0",
  "indexmap 1.9.3",
  "maplit",
  "num",
@@ -99,6 +100,16 @@ name = "hash_histogram"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70c1ffce862dbc8ca145a7c0b8a8d463fcc33b284ee6e97d4ddfd6c1f82aed25"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "hash_histogram"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3205716d4ae1350dbb0d8a5c3071fb997ab4d335a9d7ed41dfbb87f50461d9d"
 dependencies = [
  "serde",
  "serde_json",
