@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "advent_code_lib",
  "anyhow",
+ "enum-iterator",
  "hash_histogram 0.8.0",
  "indexmap 2.1.0",
  "map-macro",

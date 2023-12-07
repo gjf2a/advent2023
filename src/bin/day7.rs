@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
+use enum_iterator::{all, Sequence};
 use hash_histogram::HashHistogram;
 
 fn main() -> anyhow::Result<()> {
@@ -50,7 +51,30 @@ struct Hand {
 }
 
 impl Hand {
+    fn all_joker_variants(&self) -> Vec<Hand> {
+        all::<Card>().map(|c| self.replace_jokers_with(c)).collect()
+    }
+
+    fn replace_jokers_with(&self, sub: Card) -> Hand {
+        let mut replaced = self.clone();
+        replaced.use_joker = false;
+        for card in replaced.cards.iter_mut() {
+            if *card == Card::Jack {
+                *card = sub;
+            }
+        }
+        replaced
+    }
+
     fn level(&self) -> HandLevel {
+        if self.use_joker {
+            return self
+                .all_joker_variants()
+                .iter()
+                .map(|v| v.level())
+                .max()
+                .unwrap();
+        }
         let mut hist = HashHistogram::new();
         for card in self.cards.iter() {
             hist.bump(card);
@@ -78,6 +102,13 @@ impl PartialOrd for Hand {
         match level_cmp {
             std::cmp::Ordering::Equal => {
                 for (self_card, other_card) in self.cards.iter().zip(other.cards.iter()) {
+                    if self.use_joker {
+                        if *self_card == Card::Jack && *other_card != Card::Jack {
+                            return Some(Ordering::Less);
+                        } else if *self_card != Card::Jack && *other_card == Card::Jack {
+                            return Some(Ordering::Greater);
+                        }
+                    }
                     let card_cmp = self_card.cmp(other_card);
                     if card_cmp != Ordering::Equal {
                         return Some(card_cmp);
@@ -99,14 +130,17 @@ impl FromStr for Hand {
             for (i, c) in s.chars().enumerate() {
                 cards[i] = Card::try_from(c)?;
             }
-            Ok(Self { cards, use_joker: false })
+            Ok(Self {
+                cards,
+                use_joker: false,
+            })
         } else {
             Err(anyhow::anyhow!("Hand contains {} cards, not 5", s.len()))
         }
     }
 }
 
-#[derive(Default, Copy, Clone, Eq, PartialEq, Debug, PartialOrd, Ord, Hash)]
+#[derive(Default, Copy, Clone, Eq, PartialEq, Debug, PartialOrd, Ord, Hash, Sequence)]
 enum Card {
     #[default]
     Two,
