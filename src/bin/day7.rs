@@ -13,10 +13,11 @@ fn main() -> anyhow::Result<()> {
             }
         }
         hands_with_bids.sort();
-        let mut score = 0;
-        for (i, (_, bid)) in hands_with_bids.iter().enumerate() {
-            score += (i + 1) as u64 * *bid;
-        }
+        let score = hands_with_bids
+            .iter()
+            .enumerate()
+            .map(|(i, (_, bid))| *bid * (i + 1) as u64)
+            .sum::<u64>();
         println!("Score: {score}");
         Ok(())
     })
