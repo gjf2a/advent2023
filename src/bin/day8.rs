@@ -7,7 +7,10 @@ fn main() -> anyhow::Result<()> {
         let mut lines = all_lines(filename)?;
         let instructions = instructions(lines.next().unwrap());
         let map = graph(lines.skip(1));
-        println!("Part one: {}", navigate(&instructions, &map));
+        match part {
+            Part::One => println!("Part one: {}", navigate(&instructions, &map)),
+            Part::Two => println!("Part two: {}", ghost_navigate(&instructions, &map)),
+        }
         Ok(())
     })
 }
@@ -17,13 +20,37 @@ fn navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) ->
     let mut i = ModNum::new(0, instructions.len());
     let mut location = "AAA".to_owned();
     while location.as_str() != "ZZZ" {
-        let options = map.get(location.as_str()).unwrap();
-        location = if instructions[i.a()] == 'L' {options.0.clone()} else {options.1.clone()};
-        step_count += 1;
-        i += 1;
+        navigate_once(&mut i, &mut step_count, &mut location, instructions, map);
     }
 
     step_count
+}
+
+fn navigate_once(i: &mut ModNum<usize>, step_count: &mut usize, location: &mut String, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) {
+    let options = map.get(location.as_str()).unwrap();
+    *location = if instructions[i.a()] == 'L' {options.0.clone()} else {options.1.clone()};
+    *step_count += 1;
+    *i += 1;
+}
+
+fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> usize {
+    let mut step_count = 0;
+    let mut i = ModNum::new(0, instructions.len());
+    let mut locations = all_starts(map);
+    while !all_end(&locations) {
+        for location in locations.iter_mut() {
+            navigate_once(&mut i, &mut step_count, location, instructions, map);
+        }
+    }
+    step_count
+}
+
+fn all_starts(map: &IndexMap<String,(String,String)>) -> Vec<String> {
+    map.keys().filter(|k| k.ends_with("A")).map(|k| k.to_string()).collect()
+}
+
+fn all_end(locations: &Vec<String>) -> bool {
+    locations.iter().all(|loc| loc.ends_with("Z"))
 }
 
 fn instructions(line: String) -> Vec<char> {
