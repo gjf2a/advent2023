@@ -24,16 +24,23 @@ fn navigate(
     let mut i = ModNum::new(0, instructions.len());
     let mut location = start.to_owned();
     while !location.as_str().ends_with("Z") {
-        let options = map.get(location.as_str()).unwrap();
-        location = if instructions[i.a()] == 'L' {
-            options.0.clone()
-        } else {
-            options.1.clone()
-        };
+        location = next_location(instructions[i.a()], map, location.as_str());
         i += 1;
         step_count += 1;
     }
     step_count
+}
+
+fn next_location(
+    instruction: char,
+    map: &IndexMap<String, (String, String)>,
+    current_location: &str,
+) -> String {
+    let options = map.get(current_location).unwrap();
+    match instruction {
+        'L' => options.0.clone(),
+        _ => options.1.clone(),
+    }
 }
 
 fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String, (String, String)>) -> u64 {
