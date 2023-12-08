@@ -31,7 +31,7 @@ fn navigate(start: &str, instructions: &Vec<char>, map: &IndexMap<String,(String
 fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u64 {
     let locations = all_starts(map);
     let distances = all_distances(&locations, instructions, map);
-    distances.iter().product::<u64>() / big_gcd(&distances)
+    distances.iter().product::<u64>() / (big_gcd(&distances) * (locations.len() - 1) as u64)
 }
 
 fn big_gcd(ns: &Vec<u64>) -> u64 {
