@@ -20,17 +20,17 @@ fn navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) ->
     let mut i = ModNum::new(0, instructions.len());
     let mut location = "AAA".to_owned();
     while location.as_str() != "ZZZ" {
-        navigate_once(&mut i, &mut step_count, &mut location, instructions, map);
+        navigate_once(i, &mut location, instructions, map);
+        i += 1;
+        step_count += 1;
     }
 
     step_count
 }
 
-fn navigate_once(i: &mut ModNum<usize>, step_count: &mut usize, location: &mut String, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) {
+fn navigate_once(i: ModNum<usize>, location: &mut String, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) {
     let options = map.get(location.as_str()).unwrap();
     *location = if instructions[i.a()] == 'L' {options.0.clone()} else {options.1.clone()};
-    *step_count += 1;
-    *i += 1;
 }
 
 fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> usize {
@@ -39,8 +39,10 @@ fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String
     let mut locations = all_starts(map);
     while !all_end(&locations) {
         for location in locations.iter_mut() {
-            navigate_once(&mut i, &mut step_count, location, instructions, map);
+            navigate_once(i, location, instructions, map);
         }
+        i += 1;
+        step_count += 1;
     }
     step_count
 }
