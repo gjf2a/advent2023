@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn navigate(start: &str, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u64 {
+fn navigate(start: &str, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u128 {
     let mut step_count = 0;
     let mut i = ModNum::new(0, instructions.len());
     let mut location = start.to_owned();
@@ -28,17 +28,21 @@ fn navigate(start: &str, instructions: &Vec<char>, map: &IndexMap<String,(String
     step_count
 }
 
-fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u64 {
+fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u128 {
     let locations = all_starts(map);
     let distances = all_distances(&locations, instructions, map);
-    distances.iter().product::<u64>() / (big_gcd(&distances) * (locations.len() - 1) as u64)
+    let product = distances.iter().product::<u128>();
+    let gcd = big_gcd(&distances) * (distances.len() - 1) as u128;
+    let answer = product / gcd;
+    println!("distances: {distances:?} product: {product} gcd: {gcd} answer: {answer}");
+    answer
 }
 
-fn big_gcd(ns: &Vec<u64>) -> u64 {
+fn big_gcd(ns: &Vec<u128>) -> u128 {
     ns.iter().copied().reduce(gcd).unwrap()
 }
 
-fn gcd(a: u64, b: u64) -> u64 {
+fn gcd(a: u128, b: u128) -> u128 {
     if a == 0 {
         b
     } else if b == 0 {
@@ -52,7 +56,7 @@ fn all_starts(map: &IndexMap<String,(String,String)>) -> Vec<String> {
     map.keys().filter(|k| k.ends_with("A")).map(|k| k.to_string()).collect()
 }
 
-fn all_distances(locations: &Vec<String>, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> Vec<u64> {
+fn all_distances(locations: &Vec<String>, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> Vec<u128> {
     locations.iter().map(|start| navigate(start.as_str(), instructions, map)).collect()
 }
 
