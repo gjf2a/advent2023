@@ -8,51 +8,52 @@ fn main() -> anyhow::Result<()> {
         let instructions = instructions(lines.next().unwrap());
         let map = graph(lines.skip(1));
         match part {
-            Part::One => println!("Part one: {}", navigate(&instructions, &map)),
+            Part::One => println!("Part one: {}", navigate("AAA", &instructions, &map)),
             Part::Two => println!("Part two: {}", ghost_navigate(&instructions, &map)),
         }
         Ok(())
     })
 }
 
-fn navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> usize {
+fn navigate(start: &str, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u64 {
     let mut step_count = 0;
     let mut i = ModNum::new(0, instructions.len());
-    let mut location = "AAA".to_owned();
-    while location.as_str() != "ZZZ" {
-        navigate_once(i, &mut location, instructions, map);
-        i += 1;
-        step_count += 1;
-    }
-
-    step_count
-}
-
-fn navigate_once(i: ModNum<usize>, location: &mut String, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) {
-    let options = map.get(location.as_str()).unwrap();
-    *location = if instructions[i.a()] == 'L' {options.0.clone()} else {options.1.clone()};
-}
-
-fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> usize {
-    let mut step_count = 0;
-    let mut i = ModNum::new(0, instructions.len());
-    let mut locations = all_starts(map);
-    while !all_end(&locations) {
-        for location in locations.iter_mut() {
-            navigate_once(i, location, instructions, map);
-        }
+    let mut location = start.to_owned();
+    while !location.as_str().ends_with("Z") {
+        let options = map.get(location.as_str()).unwrap();
+        location = if instructions[i.a()] == 'L' {options.0.clone()} else {options.1.clone()};
         i += 1;
         step_count += 1;
     }
     step_count
+}
+
+fn ghost_navigate(instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> u64 {
+    let locations = all_starts(map);
+    let distances = all_distances(&locations, instructions, map);
+    distances.iter().product::<u64>() / big_gcd(&distances)
+}
+
+fn big_gcd(ns: &Vec<u64>) -> u64 {
+    ns.iter().copied().reduce(gcd).unwrap()
+}
+
+fn gcd(a: u64, b: u64) -> u64 {
+    if a == 0 {
+        b
+    } else if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
 }
 
 fn all_starts(map: &IndexMap<String,(String,String)>) -> Vec<String> {
     map.keys().filter(|k| k.ends_with("A")).map(|k| k.to_string()).collect()
 }
 
-fn all_end(locations: &Vec<String>) -> bool {
-    locations.iter().all(|loc| loc.ends_with("Z"))
+fn all_distances(locations: &Vec<String>, instructions: &Vec<char>, map: &IndexMap<String,(String,String)>) -> Vec<u64> {
+    locations.iter().map(|start| navigate(start.as_str(), instructions, map)).collect()
 }
 
 fn instructions(line: String) -> Vec<char> {
