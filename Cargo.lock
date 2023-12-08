@@ -8,8 +8,9 @@ version = "0.1.0"
 dependencies = [
  "advent_code_lib",
  "anyhow",
+ "bare_metal_modulo",
  "enum-iterator",
- "hash_histogram 0.8.0",
+ "hash_histogram",
  "indexmap 2.1.0",
  "map-macro",
 ]
@@ -17,15 +18,15 @@ dependencies = [
 [[package]]
 name = "advent_code_lib"
 version = "0.18.11"
-source = "git+https://github.com/gjf2a/advent_code_lib#cb0ad9cf5d8b9c189f823a574e8be0d570615a73"
+source = "git+https://github.com/gjf2a/advent_code_lib#d8d9ff5356af3bbdf3d471623c6a832cf8a770c2"
 dependencies = [
  "anyhow",
  "bare_metal_modulo",
  "common_macros",
  "derive-getters",
  "enum-iterator",
- "hash_histogram 0.7.0",
- "indexmap 1.9.3",
+ "hash_histogram",
+ "indexmap 2.1.0",
  "maplit",
  "num",
  "priority-queue",
@@ -61,9 +62,9 @@ checksum = "f3f6d59c71e7dc3af60f0af9db32364d96a16e9310f3f5db2b55ed642162dd35"
 
 [[package]]
 name = "derive-getters"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0122f262bf9c9a367829da84f808d9fb128c10ef283bbe7b0922a77cf07b2747"
+checksum = "7a2c35ab6e03642397cdda1dd58abbc05d418aef8e36297f336d5aba060fe8df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -95,16 +96,6 @@ name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
-
-[[package]]
-name = "hash_histogram"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70c1ffce862dbc8ca145a7c0b8a8d463fcc33b284ee6e97d4ddfd6c1f82aed25"
-dependencies = [
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "hash_histogram"
