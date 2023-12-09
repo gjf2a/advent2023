@@ -8,13 +8,13 @@ fn main() -> anyhow::Result<()> {
 
         match part {
             Part::One => {
-                let total = num_nums
-                    .iter()
-                    .map(|nums| find_bonus_number(nums))
-                    .sum::<i64>();
+                let total = num_nums.iter().map(|nums| part1(nums)).sum::<i64>();
                 println!("Part one: {}", total);
             }
-            Part::Two => println!("Part two: {}", 0),
+            Part::Two => {
+                let total = num_nums.iter().map(|nums| part2(nums)).sum::<i64>();
+                println!("Part two: {}", total);
+            }
         }
         Ok(())
     })
@@ -30,7 +30,7 @@ fn num_nums(filename: &str) -> anyhow::Result<Vec<VecDeque<i64>>> {
         .collect())
 }
 
-fn find_bonus_number(nums: &VecDeque<i64>) -> i64 {
+fn part1(nums: &VecDeque<i64>) -> i64 {
     let mut sequences = reduce_all(nums);
     augment_right(&mut sequences);
     *sequences[0].back().unwrap()
@@ -42,6 +42,22 @@ fn augment_right(sequences: &mut Vec<VecDeque<i64>>) {
         let my_last = *sequences[i].back().unwrap();
         let prev_last = *sequences[i + 1].back().unwrap();
         sequences[i].push_back(my_last + prev_last);
+    }
+}
+
+fn part2(nums: &VecDeque<i64>) -> i64 {
+    let mut sequences = reduce_all(nums);
+    augment_left(&mut sequences);
+    //println!("{sequences:?}");
+    *sequences[0].front().unwrap()
+}
+
+fn augment_left(sequences: &mut Vec<VecDeque<i64>>) {
+    sequences.last_mut().unwrap().push_front(0);
+    for i in (0..sequences.len() - 1).rev() {
+        let my_first = *sequences[i].front().unwrap();
+        let prev_first = *sequences[i + 1].front().unwrap();
+        sequences[i].push_front(my_first - prev_first);
     }
 }
 
