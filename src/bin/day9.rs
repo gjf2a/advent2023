@@ -31,7 +31,6 @@ fn num_nums(filename: &str) -> anyhow::Result<Vec<Vec<i64>>> {
 fn find_bonus_number(nums: &Vec<i64>) -> i64 {
     let mut sequences = reduce_all(nums);
     augment_once(&mut sequences);
-    println!("{sequences:?}");
     *sequences[0].last().unwrap()
 }
 
