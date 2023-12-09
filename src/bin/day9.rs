@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use advent_code_lib::{all_lines, chooser_main, Part};
 
 fn main() -> anyhow::Result<()> {
@@ -18,7 +20,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn num_nums(filename: &str) -> anyhow::Result<Vec<Vec<i64>>> {
+fn num_nums(filename: &str) -> anyhow::Result<Vec<VecDeque<i64>>> {
     Ok(all_lines(filename)?
         .map(|line| {
             line.split_whitespace()
@@ -28,22 +30,22 @@ fn num_nums(filename: &str) -> anyhow::Result<Vec<Vec<i64>>> {
         .collect())
 }
 
-fn find_bonus_number(nums: &Vec<i64>) -> i64 {
+fn find_bonus_number(nums: &VecDeque<i64>) -> i64 {
     let mut sequences = reduce_all(nums);
-    augment_once(&mut sequences);
-    *sequences[0].last().unwrap()
+    augment_right(&mut sequences);
+    *sequences[0].back().unwrap()
 }
 
-fn augment_once(sequences: &mut Vec<Vec<i64>>) {
-    sequences.last_mut().unwrap().push(0);
+fn augment_right(sequences: &mut Vec<VecDeque<i64>>) {
+    sequences.last_mut().unwrap().push_back(0);
     for i in (0..sequences.len() - 1).rev() {
-        let my_last = *sequences[i].last().unwrap();
-        let prev_last = *sequences[i + 1].last().unwrap();
-        sequences[i].push(my_last + prev_last);
+        let my_last = *sequences[i].back().unwrap();
+        let prev_last = *sequences[i + 1].back().unwrap();
+        sequences[i].push_back(my_last + prev_last);
     }
 }
 
-fn reduce_all(nums: &Vec<i64>) -> Vec<Vec<i64>> {
+fn reduce_all(nums: &VecDeque<i64>) -> Vec<VecDeque<i64>> {
     let mut sequences = vec![nums.clone()];
     let mut current = 0;
     while !all_zero(&sequences[current]) {
@@ -54,10 +56,10 @@ fn reduce_all(nums: &Vec<i64>) -> Vec<Vec<i64>> {
     sequences
 }
 
-fn all_zero(nums: &Vec<i64>) -> bool {
+fn all_zero(nums: &VecDeque<i64>) -> bool {
     nums.iter().all(|n| *n == 0)
 }
 
-fn reduce_once(nums: &Vec<i64>) -> Vec<i64> {
+fn reduce_once(nums: &VecDeque<i64>) -> VecDeque<i64> {
     (0..nums.len() - 1).map(|i| nums[i + 1] - nums[i]).collect()
 }
