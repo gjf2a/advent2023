@@ -48,7 +48,6 @@ fn augment_right(sequences: &mut Vec<VecDeque<i64>>) {
 fn part2(nums: &VecDeque<i64>) -> i64 {
     let mut sequences = reduce_all(nums);
     augment_left(&mut sequences);
-    //println!("{sequences:?}");
     *sequences[0].front().unwrap()
 }
 
