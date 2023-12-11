@@ -2,47 +2,39 @@ use advent_code_lib::{chooser_main, Part, GridCharWorld, Position};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
-        let galaxy_grid = galaxy_grid(filename)?;
-        match part {
-            Part::One => {
-                let galaxies = all_galaxies(&galaxy_grid);
-                let distances = galaxy_distances(&galaxies);
-                let part1 = distances.iter().sum::<usize>();
-                println!("Part one: {part1}");
-            }
-            Part::Two => {
-                println!("Part two: {}", 0);
-            }
-        }
+        let expansion_factor = match part {
+            Part::One => 1,
+            Part::Two => 1_000_000,
+        };
+        let galaxy_grid = GridCharWorld::from_char_file(filename)?;
+        let galaxies = big_expanded_galaxies(&galaxy_grid, expansion_factor);
+        let distances = galaxy_distances(&galaxies);
+        let total = distances.iter().sum::<usize>();
+        println!("Part {part:?}: {total}");
         Ok(())
     })
 }
 
-fn galaxy_grid(filename: &str) -> anyhow::Result<GridCharWorld> {
-    let mut result = GridCharWorld::from_char_file(filename)?;
-    let mut row_offset = 0;
-    for row in 0..result.height() {
-        let row = (row + row_offset) as isize;
-        if (0..result.width()).all(|col| result.value(Position {row, col: col as isize}).unwrap() == '.') {
-            result = result.with_new_row(row, |_| '.');
-            row_offset += 1;
-        }
-    }
-
-    let mut col_offset = 0;
-    for col in 0..result.width() {
-        let col = (col + col_offset) as isize;
-        if (0..result.height()).all(|row| result.value(Position {row: row as isize, col}).unwrap() == '.') {
-            result = result.with_new_column(col, |_| '.');
-            col_offset += 1;
-        }
-    }
-
-    Ok(result)
-}
-
 fn all_galaxies(galaxy_grid: &GridCharWorld) -> Vec<Position> {
     galaxy_grid.position_value_iter().filter(|(_, c)| **c == '#').map(|(p, _)| *p).collect()
+}
+
+fn big_expanded_galaxies(galaxy_grid: &GridCharWorld, expansion_factor: isize) -> Vec<Position> {
+    let empty_rows = empty_rows(galaxy_grid);
+    let empty_cols = empty_columns(galaxy_grid);
+    all_galaxies(galaxy_grid).iter().map(|galaxy| {
+        let row_expansions = empty_rows.iter().take_while(|row| **row < galaxy.row).count() as isize;
+        let col_expansions = empty_cols.iter().take_while(|col| **col < galaxy.col).count() as isize;
+        Position {row: galaxy.row + row_expansions * expansion_factor, col: galaxy.col + col_expansions * expansion_factor}
+    }).collect()
+}
+
+fn empty_rows(galaxy_grid: &GridCharWorld) -> Vec<isize> {
+    (0..galaxy_grid.height()).map(|row| row as isize).filter(|row| (0..galaxy_grid.width()).all(|col| galaxy_grid.value(Position {row: *row, col: col as isize}).unwrap() == '.')).collect()
+}
+
+fn empty_columns(galaxy_grid: &GridCharWorld) -> Vec<isize> {
+    (0..galaxy_grid.width()).map(|col| col as isize).filter(|col| (0..galaxy_grid.height()).all(|row| galaxy_grid.value(Position {row: row as isize, col: *col}).unwrap() == '.')).collect()
 }
 
 fn galaxy_distances(galaxies: &Vec<Position>) -> Vec<usize> {
