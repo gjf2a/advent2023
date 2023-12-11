@@ -56,9 +56,7 @@ impl PipeMaze {
                 let outside = doubled.distance_map(start);
                 for (out, _) in outside.iter() {
                     visited.insert(*out);
-                    if out.row % 2 == 0 && out.col % 2 == 0 {
-                        inside_loop.remove(&(*out / 2));
-                    }
+                    inside_loop.remove(&(*out / 2));
                 }
             }
         }
