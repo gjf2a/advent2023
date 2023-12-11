@@ -49,7 +49,7 @@ impl PipeMaze {
         let mut loop_pipes_only = self.clone();
         loop_pipes_only.clear_non_loop_pipes();
         let doubled = loop_pipes_only.doubled();
-        let mut spaces = loop_pipes_only.spaces.clone();
+        let mut inside_loop = loop_pipes_only.spaces.clone();
         let mut visited = IndexSet::new();
         for start in doubled.edge_spaces() {
             if !visited.contains(&start) {
@@ -57,12 +57,12 @@ impl PipeMaze {
                 for (out, _) in outside.iter() {
                     visited.insert(*out);
                     if out.row % 2 == 0 && out.col % 2 == 0 {
-                        spaces.remove(&(*out / 2));
+                        inside_loop.remove(&(*out / 2));
                     }
                 }
             }
         }
-        spaces.len()
+        inside_loop.len()
     }
 
     fn outgoing(&self, p: &Position) -> Vec<Position> {
