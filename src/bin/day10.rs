@@ -30,6 +30,64 @@ struct PipeMaze {
 }
 
 impl PipeMaze {
+    fn distance_map(&self, start: Position) -> IndexMap<Position, u64> {
+        let mut result = IndexMap::new();
+        let mut queue = VecDeque::new();
+        queue.push_front((start, 0));
+        while let Some((p, d)) = queue.pop_back() {
+            if !result.contains_key(&p) {
+                result.insert(p, d);
+                for n in self.outgoing(&p) {
+                    queue.push_front((n, d + 1));
+                }
+            }
+        }
+        result
+    }
+
+    fn num_enclosed_tiles(&self) -> usize {
+        let mut loop_pipes_only = self.clone();
+        loop_pipes_only.clear_non_loop_pipes();
+        let doubled = loop_pipes_only.doubled();
+        let mut spaces = loop_pipes_only.spaces.clone();
+        let mut visited = IndexSet::new();
+        for start in doubled.edge_spaces() {
+            if !visited.contains(&start) {
+                let outside = doubled.distance_map(start);
+                for (out, _) in outside.iter() {
+                    visited.insert(*out);
+                    if out.row % 2 == 0 && out.col % 2 == 0 {
+                        spaces.remove(&Position {
+                            col: out.col / 2,
+                            row: out.row / 2,
+                        });
+                    }
+                }
+            }
+        }
+        spaces.len()
+    }
+
+    fn outgoing(&self, p: &Position) -> Vec<Position> {
+        if let Some(ds) = self.pipes.get(p) {
+            ds.iter().map(|d| d.next_position(*p)).collect()
+        } else if self.spaces.contains(p) {
+            all::<ManhattanDir>()
+                .map(|d| d.next_position(*p))
+                .filter(|n| self.spaces.contains(n))
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    fn incoming(&self, p: &Position) -> Vec<(ManhattanDir, Position)> {
+        all::<ManhattanDir>()
+            .map(|d| (d, d.next_position(*p)))
+            .filter(|(_, n)| self.outgoing(n).contains(p))
+            .collect()
+    }
+
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         let mut result = Self {
             pipes: IndexMap::new(),
@@ -51,25 +109,6 @@ impl PipeMaze {
             .pipes
             .insert(result.start, [start_incoming[0].0, start_incoming[1].0]);
         Ok(result)
-    }
-
-    fn num_enclosed_tiles(&self) -> usize {
-        let mut loop_pipes_only = self.clone();
-        loop_pipes_only.clear_non_loop_pipes();
-        let doubled = loop_pipes_only.doubled();
-        let mut spaces = loop_pipes_only.spaces.clone();
-        for start in doubled.edge_spaces() {
-            let outside = doubled.distance_map(start);
-            for (out, _) in outside.iter() {
-                if out.row % 2 == 0 && out.col % 2 == 0 {
-                    spaces.remove(&Position {
-                        col: out.col / 2,
-                        row: out.row / 2,
-                    });
-                }
-            }
-        }
-        spaces.len()
     }
 
     fn edge_spaces(&self) -> IndexSet<Position> {
@@ -174,40 +213,5 @@ impl PipeMaze {
             }
         }
         Ok(())
-    }
-
-    fn distance_map(&self, start: Position) -> IndexMap<Position, u64> {
-        let mut result = IndexMap::new();
-        let mut queue = VecDeque::new();
-        queue.push_front((start, 0));
-        while let Some((p, d)) = queue.pop_back() {
-            if !result.contains_key(&p) {
-                result.insert(p, d);
-                for n in self.outgoing(&p) {
-                    queue.push_front((n, d + 1));
-                }
-            }
-        }
-        result
-    }
-
-    fn outgoing(&self, p: &Position) -> Vec<Position> {
-        if let Some(ds) = self.pipes.get(p) {
-            ds.iter().map(|d| d.next_position(*p)).collect()
-        } else if self.spaces.contains(p) {
-            all::<ManhattanDir>()
-                .map(|d| d.next_position(*p))
-                .filter(|n| self.spaces.contains(n))
-                .collect()
-        } else {
-            vec![]
-        }
-    }
-
-    fn incoming(&self, p: &Position) -> Vec<(ManhattanDir, Position)> {
-        all::<ManhattanDir>()
-            .map(|d| (d, d.next_position(*p)))
-            .filter(|(_, n)| self.outgoing(n).contains(p))
-            .collect()
     }
 }
