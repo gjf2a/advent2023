@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, cmp::max};
+use std::{cmp::max, collections::VecDeque};
 
 use advent_code_lib::{all_lines, chooser_main, DirType, ManhattanDir, Part, Position};
 use enum_iterator::all;
@@ -62,15 +62,27 @@ impl PipeMaze {
             let outside = doubled.distance_map(start);
             for (out, _) in outside.iter() {
                 if out.row % 2 == 0 && out.col % 2 == 0 {
-                    spaces.remove(&Position {col: out.col / 2, row: out.row / 2});
+                    spaces.remove(&Position {
+                        col: out.col / 2,
+                        row: out.row / 2,
+                    });
                 }
             }
         }
-        spaces.len()  
+        spaces.len()
     }
 
     fn edge_spaces(&self) -> IndexSet<Position> {
-        self.spaces.iter().filter(|s| s.row == 0 || s.col == 0 || s.row == self.height as isize - 1 || s.col == self.width as isize - 1).copied().collect()
+        self.spaces
+            .iter()
+            .filter(|s| {
+                s.row == 0
+                    || s.col == 0
+                    || s.row == self.height as isize - 1
+                    || s.col == self.width as isize - 1
+            })
+            .copied()
+            .collect()
     }
 
     fn doubled(&self) -> Self {
@@ -95,12 +107,16 @@ impl PipeMaze {
             let east = ManhattanDir::E.next_position(mapped);
             let southeast = ManhattanDir::E.next_position(south);
             if dirs.contains(&ManhattanDir::S) {
-                result.pipes.insert(south, [ManhattanDir::N, ManhattanDir::S]);
+                result
+                    .pipes
+                    .insert(south, [ManhattanDir::N, ManhattanDir::S]);
             } else {
                 result.spaces.insert(south);
             }
             if dirs.contains(&ManhattanDir::E) {
-                result.pipes.insert(east, [ManhattanDir::W, ManhattanDir::E]);
+                result
+                    .pipes
+                    .insert(east, [ManhattanDir::W, ManhattanDir::E]);
             } else {
                 result.spaces.insert(east);
             }
@@ -111,7 +127,12 @@ impl PipeMaze {
 
     fn clear_non_loop_pipes(&mut self) {
         let loop_pipes = self.distance_map(self.start);
-        let non_loop_pipes = self.pipes.iter().map(|(p,_)| *p).filter(|p| !loop_pipes.contains_key(p)).collect::<Vec<_>>();
+        let non_loop_pipes = self
+            .pipes
+            .iter()
+            .map(|(p, _)| *p)
+            .filter(|p| !loop_pipes.contains_key(p))
+            .collect::<Vec<_>>();
         for p in non_loop_pipes {
             self.pipes.remove(&p);
             self.spaces.insert(p);
@@ -174,7 +195,10 @@ impl PipeMaze {
         if let Some(ds) = self.pipes.get(p) {
             ds.iter().map(|d| d.next_position(*p)).collect()
         } else if self.spaces.contains(p) {
-            all::<ManhattanDir>().map(|d| d.next_position(*p)).filter(|n| self.spaces.contains(n)).collect()
+            all::<ManhattanDir>()
+                .map(|d| d.next_position(*p))
+                .filter(|n| self.spaces.contains(n))
+                .collect()
         } else {
             vec![]
         }
