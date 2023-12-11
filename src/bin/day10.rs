@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, cmp::max};
 
 use advent_code_lib::{all_lines, chooser_main, DirType, ManhattanDir, Part, Position};
 use enum_iterator::all;
@@ -25,6 +25,8 @@ struct PipeMaze {
     pipes: IndexMap<Position, [ManhattanDir; 2]>,
     spaces: IndexSet<Position>,
     start: Position,
+    width: usize,
+    height: usize,
 }
 
 impl PipeMaze {
@@ -33,11 +35,15 @@ impl PipeMaze {
             pipes: IndexMap::new(),
             start: Position::new(),
             spaces: IndexSet::new(),
+            width: 0,
+            height: 0,
         };
         for (row, row_text) in all_lines(filename)?.enumerate() {
             for (col, pipe) in row_text.char_indices() {
                 result.add_pipe(row, col, pipe)?;
+                result.width = max(result.width, col + 1);
             }
+            result.height = max(result.height, row + 1);
         }
         let start_incoming = result.incoming(&result.start);
         assert_eq!(2, start_incoming.len());
@@ -51,14 +57,20 @@ impl PipeMaze {
         let mut loop_pipes_only = self.clone();
         loop_pipes_only.clear_non_loop_pipes();
         let doubled = loop_pipes_only.doubled();
-        let outside = doubled.distance_map(Position::new());
         let mut spaces = loop_pipes_only.spaces.clone();
-        for (out, _) in outside.iter() {
-            if out.row % 2 == 0 && out.col % 2 == 0 {
-                spaces.remove(&Position {col: out.col / 2, row: out.row / 2});
+        for start in doubled.edge_spaces() {
+            let outside = doubled.distance_map(start);
+            for (out, _) in outside.iter() {
+                if out.row % 2 == 0 && out.col % 2 == 0 {
+                    spaces.remove(&Position {col: out.col / 2, row: out.row / 2});
+                }
             }
         }
         spaces.len()  
+    }
+
+    fn edge_spaces(&self) -> IndexSet<Position> {
+        self.spaces.iter().filter(|s| s.row == 0 || s.col == 0 || s.row == self.height as isize - 1 || s.col == self.width as isize - 1).copied().collect()
     }
 
     fn doubled(&self) -> Self {
@@ -66,6 +78,8 @@ impl PipeMaze {
             pipes: IndexMap::new(),
             start: self.start * 2,
             spaces: IndexSet::new(),
+            width: self.width * 2,
+            height: self.height * 2,
         };
         for space in self.spaces.iter() {
             let mapped = *space * 2;
