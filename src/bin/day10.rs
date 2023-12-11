@@ -57,10 +57,7 @@ impl PipeMaze {
                 for (out, _) in outside.iter() {
                     visited.insert(*out);
                     if out.row % 2 == 0 && out.col % 2 == 0 {
-                        spaces.remove(&Position {
-                            col: out.col / 2,
-                            row: out.row / 2,
-                        });
+                        spaces.remove(&(*out / 2));
                     }
                 }
             }
