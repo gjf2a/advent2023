@@ -1,13 +1,14 @@
 use advent_code_lib::{chooser_main, Part, GridCharWorld, Position};
-use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
-        let grid = galaxy_grid(filename)?;
-        println!("{grid}");
+        let galaxy_grid = galaxy_grid(filename)?;
         match part {
             Part::One => {
-                println!("Part one: {}", 0);
+                let galaxies = all_galaxies(&galaxy_grid);
+                let distances = galaxy_distances(&galaxies);
+                let part1 = distances.iter().sum::<usize>();
+                println!("Part one: {part1}");
             }
             Part::Two => {
                 println!("Part two: {}", 0);
@@ -41,5 +42,15 @@ fn galaxy_grid(filename: &str) -> anyhow::Result<GridCharWorld> {
 }
 
 fn all_galaxies(galaxy_grid: &GridCharWorld) -> Vec<Position> {
-    galaxy_grid.position_value_iter().filter(|(p, c)| **c == '#').map(|(p, c)| *p).collect()
+    galaxy_grid.position_value_iter().filter(|(_, c)| **c == '#').map(|(p, _)| *p).collect()
+}
+
+fn galaxy_distances(galaxies: &Vec<Position>) -> Vec<usize> {
+    let mut result = vec![];
+    for i in 0..galaxies.len() {
+        for j in (i + 1)..galaxies.len() {
+            result.push(galaxies[i].manhattan_distance(galaxies[j]));
+        }
+    }
+    result
 }
