@@ -65,6 +65,10 @@ impl SpringProspect {
     }
 
     fn is_valid_solution(&self) -> bool {
+        if self.codes.iter().any(|c| *c == Code::Unknown) {
+            return false;
+        }
+
         let num_damaged = self.codes.iter().filter(|c| **c == Code::Damaged).count();
         if num_damaged != self.nums.iter().sum() {
             return false;
