@@ -7,6 +7,10 @@ fn main() -> anyhow::Result<()> {
         let result = match part {
             Part::One => {
                 let prospects = all_lines(filename)?.map(|line| line.parse::<SpringProspect>().unwrap()).collect::<Vec<_>>();
+                for p in prospects.iter() {
+                    println!("{p}");
+                    println!("{:?}", p.all_starts());
+                }
                 prospects.iter().map(|p| p.num_unknown()).max().unwrap()
                 
             },
@@ -26,6 +30,61 @@ impl SpringProspect {
     fn num_unknown(&self) -> usize {
         self.codes.iter().filter(|c| **c == Code::Unknown).count()
     }
+
+    fn all_starts(&self) -> Vec<Vec<usize>> {
+        let mut result = vec![];
+        let mut earliest = 0;
+        for num in self.nums.iter() {
+            print!("num: {num} earliest: {earliest}");
+            let s = self.starts_for(*num, earliest);
+            println!(" {s:?}");
+            earliest = s[0] + *num + 1;
+            result.push(s);
+        }
+        result
+    }
+
+    fn starts_for(&self, length: usize, start: usize) -> Vec<usize> {
+        let mut result = vec![];
+        if length < self.codes.len() {
+            for i in start..=self.codes.len() - length {
+                if (i..(i + length)).all(|j| self.codes[j].possible_damage()) {
+                    if i + length == self.codes.len() || self.codes[i + length].possible_works() {
+                        result.push(i);
+                    }
+                }
+            }
+        }
+        result
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+enum Code {
+    Operational, Damaged, Unknown
+}
+
+impl Code {
+    fn possible_damage(&self) -> bool {
+        *self != Self::Operational
+    }
+
+    fn possible_works(&self) -> bool {
+        *self != Self::Damaged
+    }
+}
+
+impl Display for SpringProspect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for code in self.codes.iter() {
+            write!(f, "{code}")?;
+        }
+        write!(f, " {}", self.nums[0])?;
+        for num in self.nums.iter().skip(1) {
+            write!(f, ",{num}")?;
+        }
+        Ok(())
+    }
 }
 
 impl FromStr for SpringProspect {
@@ -37,11 +96,6 @@ impl FromStr for SpringProspect {
         let nums = parts.next().unwrap().split(',').map(|c| c.parse::<usize>().unwrap()).collect();
         Ok(Self {codes, nums})
     }
-}
-
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
-enum Code {
-    Operational, Damaged, Unknown
 }
 
 impl TryFrom<char> for Code {
