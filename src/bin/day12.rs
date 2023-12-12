@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr, cmp::max, collections::VecDeque};
+use std::{fmt::Display, str::FromStr, collections::VecDeque};
 
 use advent_code_lib::{chooser_main, Part, all_lines};
 
