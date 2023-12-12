@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr, cmp::max, collections::VecDeque};
 
 use advent_code_lib::{chooser_main, Part, all_lines};
 
@@ -7,14 +7,18 @@ fn main() -> anyhow::Result<()> {
         let result = match part {
             Part::One => {
                 let prospects = all_lines(filename)?.map(|line| line.parse::<SpringProspect>().unwrap()).collect::<Vec<_>>();
+                //let mut m = 0;
                 for p in prospects.iter() {
                     println!("{p}");
-                    let mut starts = p.all_starts();
+                    let starts = p.all_starts();
                     println!("{starts:?}");
-                    p.purge_ends(&mut starts);
-                    println!("{starts:?}");
-                    println!("{}", starts.iter().map(|s| s.len()).product::<usize>());
+                    let usable = p.num_can_use(&starts);
+                    println!("usable: {usable}");
+                    //let combos = starts.iter().map(|s| s.len()).product::<usize>();
+                    //println!("{}", combos);
+                    //m = max(combos, m);
                 }
+                //println!("max: {m} ({})", prospects.len());
                 prospects.iter().map(|p| p.num_unknown()).max().unwrap()
                 
             },
@@ -35,6 +39,22 @@ impl SpringProspect {
         self.codes.iter().filter(|c| **c == Code::Unknown).count()
     }
 
+    fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
+        all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).inspect(|x| println!("x: {x:?}")).count()
+    }
+
+    fn can_use(&self, num_starts: &VecDeque<usize>) -> bool {
+        assert_eq!(num_starts.len(), self.nums.len());
+        let mut next_allowed = 0;
+        for i in 0..num_starts.len() {
+            if num_starts[i] < next_allowed {
+                return false;
+            }
+            next_allowed = num_starts[i] + self.nums[i] + 1;
+        }
+        true
+    }
+
     fn all_starts(&self) -> Vec<Vec<usize>> {
         let mut result = vec![];
         let mut earliest = 0;
@@ -46,28 +66,36 @@ impl SpringProspect {
         result
     }
 
-    fn purge_ends(&self, starts: &mut Vec<Vec<usize>>) {
-        for i in (1..starts.len()).rev() {
-            let last_allowed = starts[i][0] - 1;
-            for j in 0..i {
-                let mut k = starts[j].len() - 1;
-                while k > 0 && starts[j][k] + self.nums[j] > last_allowed {
-                    starts[j].pop();
-                    k -= 1;
-                }
-            }
-        }
-    }
-
     fn starts_for(&self, length: usize, start: usize) -> Vec<usize> {
         let mut result = vec![];
         if length < self.codes.len() {
             for i in start..=self.codes.len() - length {
-                if (i..(i + length)).all(|j| self.codes[j].possible_damage()) {
+                if (i..(i + length)).all(|j| self.codes[j].possible_damage()) && (i == 0 || self.codes[i - 1] != Code::Damaged) {
                     if i + length == self.codes.len() || self.codes[i + length].possible_works() {
                         result.push(i);
                     }
                 }
+            }
+        }
+        result
+    }
+}
+
+fn all_combos_from(starts: &Vec<Vec<usize>>) -> Vec<VecDeque<usize>> {
+    all_combo_help(starts, 0)
+}
+
+fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
+    if i == starts.len() - 1 {
+        starts[i].iter().map(|n| VecDeque::from([*n])).collect()
+    } else {
+        let mut result = vec![];
+        let options = all_combo_help(starts, i + 1);
+        for start in starts[i].iter() {
+            for option in options.iter() {
+                let mut version = option.clone();
+                version.push_front(*start);
+                result.push(version);
             }
         }
         result
