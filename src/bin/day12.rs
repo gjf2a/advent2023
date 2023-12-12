@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
                     println!("{p}");
                     let mut starts = p.all_starts();
                     println!("{starts:?}");
-                    SpringProspect::purge_ends(&mut starts);
+                    p.purge_ends(&mut starts);
                     println!("{starts:?}");
                     println!("{}", starts.iter().map(|s| s.len()).product::<usize>());
                 }
@@ -46,12 +46,12 @@ impl SpringProspect {
         result
     }
 
-    fn purge_ends(starts: &mut Vec<Vec<usize>>) {
+    fn purge_ends(&self, starts: &mut Vec<Vec<usize>>) {
         for i in (1..starts.len()).rev() {
-            let last_allowed = starts[i][0] - 2;
+            let last_allowed = starts[i][0] - 1;
             for j in 0..i {
                 let mut k = starts[j].len() - 1;
-                while k > 0 && starts[j][k] > last_allowed {
+                while k > 0 && starts[j][k] + self.nums[j] > last_allowed {
                     starts[j].pop();
                     k -= 1;
                 }
