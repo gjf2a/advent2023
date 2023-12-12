@@ -1,31 +1,27 @@
-use std::{fmt::Display, str::FromStr, collections::VecDeque, iter::repeat};
+use std::{collections::VecDeque, fmt::Display, iter::repeat, str::FromStr};
 
-use advent_code_lib::{chooser_main, Part, all_lines};
+use advent_code_lib::{all_lines, chooser_main, Part};
 
 // Part 1 does not work: 9263 is too high.
-// This solution: 14049!!!
+// This solution: 10613!!!
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let result = match part {
             Part::One => {
-                let prospects = all_lines(filename)?.map(|line| line.parse::<SpringProspect>().unwrap()).collect::<Vec<_>>();
+                let prospects = all_lines(filename)?
+                    .map(|line| line.parse::<SpringProspect>().unwrap())
+                    .collect::<Vec<_>>();
                 let mut total = 0;
-                //let mut m = 0;
                 for p in prospects.iter() {
                     println!("{p}");
                     let starts = p.all_starts();
-                    //println!("{starts:?}");
                     let usable = p.num_can_use(&starts);
                     println!("usable: {usable}");
                     total += usable;
-                    //let combos = starts.iter().map(|s| s.len()).product::<usize>();
-                    //println!("{}", combos);
-                    //m = max(combos, m);
                 }
-                //println!("max: {m} ({})", prospects.len());
                 total
-            },
+            }
             Part::Two => 999_999,
         };
         println!("Part {part:?}: {result}");
@@ -40,20 +36,33 @@ struct SpringProspect {
 
 impl SpringProspect {
     fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
-        all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).count()
+        all_combos_from(starts)
+            .iter()
+            .filter(|combo| self.can_use(*combo))
+            //.inspect(|c| println!("{}", self.solution(*c).unwrap()))
+            .count()
     }
 
     fn solution(&self, starts: &VecDeque<usize>) -> Option<Self> {
         assert_eq!(starts.len(), self.nums.len());
         let codes = repeat(Code::Operational).take(self.codes.len()).collect();
-        let mut solution = Self {codes, nums: self.nums.clone()};
+        let mut solution = Self {
+            codes,
+            nums: self.nums.clone(),
+        };
         for (i, start) in starts.iter().enumerate() {
             for j in *start..(*start + self.nums[i]) {
                 solution.codes[j] = Code::Damaged;
             }
         }
-        //println!("solution: {solution}");
-        if solution.is_valid_solution() {Some(solution)} else {None}
+
+        let retained_known = (0..self.codes.len())
+            .all(|i| self.codes[i] == Code::Unknown || self.codes[i] == solution.codes[i]);
+        if retained_known && solution.is_valid_solution() {
+            Some(solution)
+        } else {
+            None
+        }
     }
 
     fn is_valid_solution(&self) -> bool {
@@ -68,34 +77,30 @@ impl SpringProspect {
             while self.codes[i] == Code::Operational {
                 i += 1;
                 if i == self.codes.len() {
-                    //println!("1");
                     return false;
                 }
             }
             while seq > 0 {
                 if self.codes[i] != Code::Damaged {
-                    //println!("2");
                     return false;
                 }
                 seq -= 1;
                 i += 1;
                 if i == self.codes.len() && seq > 0 {
-                    //println!("3");
                     return false;
                 }
             }
             if i < self.codes.len() && self.codes[i] != Code::Operational {
-                //println!("4");
                 return false;
             }
         }
         while i < self.codes.len() {
             if self.codes[i] != Code::Operational {
-                //println!("5");
                 return false;
             }
             i += 1;
         }
+
         true
     }
 
@@ -128,7 +133,9 @@ impl SpringProspect {
         let mut result = vec![];
         if length < self.codes.len() {
             for i in start..=self.codes.len() - length {
-                if (i..(i + length)).all(|j| self.codes[j].possible_damage()) && (i == 0 || self.codes[i - 1] != Code::Damaged) {
+                if (i..(i + length)).all(|j| self.codes[j].possible_damage())
+                    && (i == 0 || self.codes[i - 1] != Code::Damaged)
+                {
                     if i + length == self.codes.len() || self.codes[i + length].possible_works() {
                         result.push(i);
                     }
@@ -163,9 +170,9 @@ fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
 #[derive(Default, Clone, Copy, Eq, PartialEq, Debug)]
 enum Code {
     #[default]
-    Operational, 
-    Damaged, 
-    Unknown
+    Operational,
+    Damaged,
+    Unknown,
 }
 
 impl Code {
@@ -196,9 +203,19 @@ impl FromStr for SpringProspect {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split_whitespace();
-        let codes = parts.next().unwrap().chars().map(|c| c.try_into().unwrap()).collect();
-        let nums = parts.next().unwrap().split(',').map(|c| c.parse::<usize>().unwrap()).collect();
-        Ok(Self {codes, nums})
+        let codes = parts
+            .next()
+            .unwrap()
+            .chars()
+            .map(|c| c.try_into().unwrap())
+            .collect();
+        let nums = parts
+            .next()
+            .unwrap()
+            .split(',')
+            .map(|c| c.parse::<usize>().unwrap())
+            .collect();
+        Ok(Self { codes, nums })
     }
 }
 
@@ -210,7 +227,7 @@ impl TryFrom<char> for Code {
             '?' => Ok(Self::Unknown),
             '.' => Ok(Self::Operational),
             '#' => Ok(Self::Damaged),
-            _ => Err(anyhow::anyhow!("Unrecognized character '{value}'"))
+            _ => Err(anyhow::anyhow!("Unrecognized character '{value}'")),
         }
     }
 }
