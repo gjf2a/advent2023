@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, fmt::Display, iter::repeat, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
+use indexmap::IndexSet;
 
 // Part 1 does not work: 9263 is too high.
 // This solution: 10613!!!
@@ -29,6 +30,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
+#[derive(Hash, Eq, PartialEq)]
 struct SpringProspect {
     codes: Vec<Code>,
     nums: Vec<usize>,
@@ -36,10 +38,14 @@ struct SpringProspect {
 
 impl SpringProspect {
     fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
+        self.all_solutions(starts).len()
+    }
+
+    fn all_solutions(&self, starts: &Vec<Vec<usize>>) -> IndexSet<Self> {
         all_combos_from(starts)
             .iter()
             .filter_map(|combo| self.solution(combo))
-            .count()
+            .collect()
     }
 
     fn solution(&self, starts: &VecDeque<usize>) -> Option<Self> {
@@ -156,7 +162,7 @@ fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
     }
 }
 
-#[derive(Default, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Default, Clone, Copy, Eq, PartialEq, Debug, Hash)]
 enum Code {
     #[default]
     Operational,
