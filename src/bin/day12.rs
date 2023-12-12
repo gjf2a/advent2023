@@ -1,8 +1,9 @@
-use std::{fmt::Display, str::FromStr, collections::VecDeque};
+use std::{fmt::Display, str::FromStr, collections::VecDeque, iter::repeat};
 
 use advent_code_lib::{chooser_main, Part, all_lines};
 
 // Part 1 does not work: 9263 is too high.
+// This solution: 14049!!!
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
@@ -42,8 +43,65 @@ impl SpringProspect {
         all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).count()
     }
 
+    fn solution(&self, starts: &VecDeque<usize>) -> Option<Self> {
+        assert_eq!(starts.len(), self.nums.len());
+        let codes = repeat(Code::Operational).take(self.codes.len()).collect();
+        let mut solution = Self {codes, nums: self.nums.clone()};
+        for (i, start) in starts.iter().enumerate() {
+            for j in *start..(*start + self.nums[i]) {
+                solution.codes[j] = Code::Damaged;
+            }
+        }
+        //println!("solution: {solution}");
+        if solution.is_valid_solution() {Some(solution)} else {None}
+    }
+
+    fn is_valid_solution(&self) -> bool {
+        let num_damaged = self.codes.iter().filter(|c| **c == Code::Damaged).count();
+        if num_damaged != self.nums.iter().sum() {
+            return false;
+        }
+
+        let mut sequences_left = self.nums.iter().collect::<VecDeque<_>>();
+        let mut i = 0;
+        while let Some(mut seq) = sequences_left.pop_front().copied() {
+            while self.codes[i] == Code::Operational {
+                i += 1;
+                if i == self.codes.len() {
+                    //println!("1");
+                    return false;
+                }
+            }
+            while seq > 0 {
+                if self.codes[i] != Code::Damaged {
+                    //println!("2");
+                    return false;
+                }
+                seq -= 1;
+                i += 1;
+                if i == self.codes.len() && seq > 0 {
+                    //println!("3");
+                    return false;
+                }
+            }
+            if i < self.codes.len() && self.codes[i] != Code::Operational {
+                //println!("4");
+                return false;
+            }
+        }
+        while i < self.codes.len() {
+            if self.codes[i] != Code::Operational {
+                //println!("5");
+                return false;
+            }
+            i += 1;
+        }
+        true
+    }
+
     fn can_use(&self, num_starts: &VecDeque<usize>) -> bool {
-        assert_eq!(num_starts.len(), self.nums.len());
+        self.solution(num_starts).is_some()
+        /*assert_eq!(num_starts.len(), self.nums.len());
         let mut next_allowed = 0;
         for i in 0..num_starts.len() {
             if num_starts[i] < next_allowed {
@@ -52,6 +110,7 @@ impl SpringProspect {
             next_allowed = num_starts[i] + self.nums[i] + 1;
         }
         true
+        */
     }
 
     fn all_starts(&self) -> Vec<Vec<usize>> {
@@ -101,9 +160,12 @@ fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Default, Clone, Copy, Eq, PartialEq, Debug)]
 enum Code {
-    Operational, Damaged, Unknown
+    #[default]
+    Operational, 
+    Damaged, 
+    Unknown
 }
 
 impl Code {
