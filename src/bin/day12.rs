@@ -38,8 +38,7 @@ impl SpringProspect {
     fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
         all_combos_from(starts)
             .iter()
-            .filter(|combo| self.can_use(*combo))
-            .inspect(|c| println!("{}", self.solution(*c).unwrap()))
+            .filter_map(|combo| self.solution(combo))
             .count()
     }
 
