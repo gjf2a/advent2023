@@ -2,25 +2,28 @@ use std::{fmt::Display, str::FromStr, cmp::max, collections::VecDeque};
 
 use advent_code_lib::{chooser_main, Part, all_lines};
 
+// Part 1 does not work: 9263 is too high.
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let result = match part {
             Part::One => {
                 let prospects = all_lines(filename)?.map(|line| line.parse::<SpringProspect>().unwrap()).collect::<Vec<_>>();
+                let mut total = 0;
                 //let mut m = 0;
                 for p in prospects.iter() {
                     println!("{p}");
                     let starts = p.all_starts();
-                    println!("{starts:?}");
+                    //println!("{starts:?}");
                     let usable = p.num_can_use(&starts);
                     println!("usable: {usable}");
+                    total += usable;
                     //let combos = starts.iter().map(|s| s.len()).product::<usize>();
                     //println!("{}", combos);
                     //m = max(combos, m);
                 }
                 //println!("max: {m} ({})", prospects.len());
-                prospects.iter().map(|p| p.num_unknown()).max().unwrap()
-                
+                total
             },
             Part::Two => 999_999,
         };
@@ -40,7 +43,7 @@ impl SpringProspect {
     }
 
     fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
-        all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).inspect(|x| println!("x: {x:?}")).count()
+        all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).count()
     }
 
     fn can_use(&self, num_starts: &VecDeque<usize>) -> bool {
