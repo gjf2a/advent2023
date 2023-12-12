@@ -9,7 +9,11 @@ fn main() -> anyhow::Result<()> {
                 let prospects = all_lines(filename)?.map(|line| line.parse::<SpringProspect>().unwrap()).collect::<Vec<_>>();
                 for p in prospects.iter() {
                     println!("{p}");
-                    println!("{:?}", p.all_starts());
+                    let mut starts = p.all_starts();
+                    println!("{starts:?}");
+                    SpringProspect::purge_ends(&mut starts);
+                    println!("{starts:?}");
+                    println!("{}", starts.iter().map(|s| s.len()).product::<usize>());
                 }
                 prospects.iter().map(|p| p.num_unknown()).max().unwrap()
                 
@@ -35,13 +39,24 @@ impl SpringProspect {
         let mut result = vec![];
         let mut earliest = 0;
         for num in self.nums.iter() {
-            print!("num: {num} earliest: {earliest}");
             let s = self.starts_for(*num, earliest);
-            println!(" {s:?}");
             earliest = s[0] + *num + 1;
             result.push(s);
         }
         result
+    }
+
+    fn purge_ends(starts: &mut Vec<Vec<usize>>) {
+        for i in (1..starts.len()).rev() {
+            let last_allowed = starts[i][0] - 2;
+            for j in 0..i {
+                let mut k = starts[j].len() - 1;
+                while k > 0 && starts[j][k] > last_allowed {
+                    starts[j].pop();
+                    k -= 1;
+                }
+            }
+        }
     }
 
     fn starts_for(&self, length: usize, start: usize) -> Vec<usize> {
