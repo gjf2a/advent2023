@@ -103,20 +103,6 @@ impl SpringProspect {
         true
     }
 
-    fn can_use(&self, num_starts: &VecDeque<usize>) -> bool {
-        self.solution(num_starts).is_some()
-        /*assert_eq!(num_starts.len(), self.nums.len());
-        let mut next_allowed = 0;
-        for i in 0..num_starts.len() {
-            if num_starts[i] < next_allowed {
-                return false;
-            }
-            next_allowed = num_starts[i] + self.nums[i] + 1;
-        }
-        true
-        */
-    }
-
     fn all_starts(&self) -> Vec<Vec<usize>> {
         let mut result = vec![];
         let mut earliest = 0;
