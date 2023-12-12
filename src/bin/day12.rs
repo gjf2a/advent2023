@@ -3,9 +3,6 @@ use std::{collections::VecDeque, fmt::Display, iter::repeat, str::FromStr};
 use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
 
-// Part 1 does not work: 9263 is too high.
-// This solution: 10613!!!
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let result = match part {
@@ -14,13 +11,20 @@ fn main() -> anyhow::Result<()> {
                     .map(|line| line.parse::<SpringProspect>().unwrap())
                     .collect::<Vec<_>>();
                 let mut total = 0;
+                let mut total2 = 0;
                 for p in prospects.iter() {
                     println!("{p}");
                     let starts = p.all_starts();
-                    let usable = p.num_can_use(&starts);
-                    println!("usable: {usable}");
-                    total += usable;
+                    println!("{starts:?}");
+                    let combos = p.start_combo_counts();
+                    println!("{combos:?}");
+                    let usable1 = p.num_can_use(&starts);
+                    total += usable1;
+                    let usable2 = combos[0].iter().map(|(_, c)| *c).sum::<usize>();
+                    println!("usable: {usable1} ({usable2})");
+                    total2 += usable2;
                 }
+                println!("total: {total} ({total2})");
                 total
             }
             Part::Two => 999_999,
@@ -45,6 +49,7 @@ impl SpringProspect {
         all_combos_from(starts)
             .iter()
             .filter_map(|combo| self.solution(combo))
+            .inspect(|s| println!("{s}"))
             .collect()
     }
 
@@ -114,12 +119,43 @@ impl SpringProspect {
     }
 
     fn all_starts(&self) -> Vec<Vec<usize>> {
-        let mut result = vec![];
+        let mut result: Vec<Vec<usize>> = vec![];
         let mut earliest = 0;
-        for num in self.nums.iter() {
+        for (i, num) in self.nums.iter().enumerate() {
             let s = self.starts_for(*num, earliest);
             earliest = s[0] + *num + 1;
+            if i > 0 {
+                let latest = s[s.len() - 1] - 2;
+                for j in 0..i {
+                    while result[j][result[j].len() - 1] > latest {
+                        result[j].pop();
+                    }
+                }
+            }
             result.push(s);
+        }
+        result
+    }
+
+    fn start_combo_counts(&self) -> VecDeque<Vec<(usize, usize)>> {
+        let starts = self.all_starts();
+        let base_case = starts[starts.len() - 1].iter().map(|s| (*s, 1)).collect();
+        let mut result: VecDeque<Vec<(usize, usize)>> = VecDeque::new();
+        result.push_front(base_case);
+        for row in (0..starts.len() - 1).rev() {
+            let mut row_values = vec![];
+            for start in starts[row].iter() {
+                let mut total = 0;
+                for (next, count) in result[0].iter() {
+                    if *start + self.nums[row] < *next {
+                        total += *count;
+                    }
+                }
+                if total > 0 {
+                    row_values.push((*start, total));
+                }
+            }
+            result.push_front(row_values);
         }
         result
     }
@@ -142,7 +178,9 @@ impl SpringProspect {
 }
 
 fn all_combos_from(starts: &Vec<Vec<usize>>) -> Vec<VecDeque<usize>> {
-    all_combo_help(starts, 0)
+    let result = all_combo_help(starts, 0);
+    println!("num combos: {}", result.len());
+    result
 }
 
 fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
