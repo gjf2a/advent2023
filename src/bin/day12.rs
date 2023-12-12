@@ -39,7 +39,7 @@ impl SpringProspect {
         all_combos_from(starts)
             .iter()
             .filter(|combo| self.can_use(*combo))
-            //.inspect(|c| println!("{}", self.solution(*c).unwrap()))
+            .inspect(|c| println!("{}", self.solution(*c).unwrap()))
             .count()
     }
 
