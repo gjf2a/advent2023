@@ -38,10 +38,6 @@ struct SpringProspect {
 }
 
 impl SpringProspect {
-    fn num_unknown(&self) -> usize {
-        self.codes.iter().filter(|c| **c == Code::Unknown).count()
-    }
-
     fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
         all_combos_from(starts).iter().filter(|combo| self.can_use(*combo)).count()
     }
