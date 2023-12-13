@@ -14,8 +14,8 @@ fn main() -> anyhow::Result<()> {
                 println!("Part 1: {}", above_sum * 100 + left_sum);
             }
             Part::Two => {
-                let left_sum = block_sum(&blocks, find_smudge_horizontal);
-                let above_sum = block_sum(&blocks, find_smudge_vertical);
+                let left_sum = block_sum(&blocks, find_smudge_columns);
+                let above_sum = block_sum(&blocks, find_smudge_rows);
                 println!("left_sum: {left_sum}");
                 println!("above_sum: {above_sum}");
                 println!("Part 2: {}", above_sum * 100 + left_sum);
@@ -60,30 +60,90 @@ fn find_smudge<F: Fn(&GridCharWorld) -> Option<usize>>(
         .next()
 }
 
-fn find_smudge_horizontal(block: &GridCharWorld) -> Option<usize> {
+fn find_smudge_columns(block: &GridCharWorld) -> Option<usize> {
     find_smudge(block, num_columns_left)
 }
 
-fn find_smudge_vertical(block: &GridCharWorld) -> Option<usize> {
+fn find_smudge_rows(block: &GridCharWorld) -> Option<usize> {
     find_smudge(block, num_rows_above)
 }
 
 fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
+    Mirror::Column.num_preceding(block)/*
     for col in 0..block.width() {
         if mirror_col(block, col) {
             return Some(col);
         }
     }
-    None
+    None*/
 }
 
 fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
+    Mirror::Row.num_preceding(block)/*
     for row in 0..block.height() {
         if mirror_row(block, row) {
             return Some(row);
         }
     }
     None
+    */
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum Mirror {
+    Column,
+    Row
+}
+
+impl Mirror {
+    fn num_preceding(&self, block: &GridCharWorld) -> Option<usize> {
+        for major in 0..self.dim(block) {
+            if self.mirror(block, major) {
+                return Some(major);
+            }
+        }
+        None
+    }
+
+    fn mirror(&self, block: &GridCharWorld, test: usize) -> bool {
+        let sub = min(test, self.dim(block) - test);
+        if sub >= 1 {
+            let substart = test - sub;
+            let subend = (substart + sub) * 2 - 1;
+            for subtest in substart..test {
+                let mirror = subend - subtest;
+                for entry in 0..self.alt_dim(block) {
+                    if self.get(block, subtest, entry) != self.get(block, mirror, entry) {
+                        return false;
+                    }
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn dim(&self, block: &GridCharWorld) -> usize {
+        match self {
+            Self::Column => block.width(),
+            Self::Row => block.height(),
+        }
+    }
+
+    fn alt_dim(&self, block: &GridCharWorld) -> usize {
+        match self {
+            Self::Column => block.height(),
+            Self::Row => block.width(),
+        }
+    }
+
+    fn get(&self, block: &GridCharWorld, major: usize, minor: usize) -> Option<char> {
+        match self {
+            Self::Column => block.get(major, minor),
+            Self::Row => block.get(minor, major),
+        }
+    }
 }
 
 fn mirror_col(block: &GridCharWorld, col: usize) -> bool {
