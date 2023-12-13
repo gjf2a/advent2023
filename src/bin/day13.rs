@@ -1,6 +1,10 @@
 use std::cmp::min;
 
-use advent_code_lib::{all_lines, chooser_main, GridCharWorld, Part, RowMajorPositionIterator, Position};
+// Part two: 21325 is too low
+
+use advent_code_lib::{
+    all_lines, chooser_main, GridCharWorld, Part, Position, RowMajorPositionIterator,
+};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
@@ -14,11 +18,11 @@ fn main() -> anyhow::Result<()> {
                 println!("Part 1: {}", above_sum * 100 + left_sum);
             }
             Part::Two => {
-                /*let left_sum = block_sum(&blocks, find_smudge_columns);
+                let left_sum = block_sum(&blocks, find_smudge_columns);
                 let above_sum = block_sum(&blocks, find_smudge_rows);
                 println!("left_sum: {left_sum}");
                 println!("above_sum: {above_sum}");
-                println!("Part 2: {}", above_sum * 100 + left_sum);*/
+                println!("Part 2: {}", above_sum * 100 + left_sum);
             }
         }
         Ok(())
@@ -45,15 +49,15 @@ fn iter_smudge(block: &GridCharWorld) -> impl Iterator<Item = (Position, GridCha
         (p, smudged)
     })
 }
-/* 
+
 fn find_smudge_columns(block: &GridCharWorld) -> Option<usize> {
-    find_smudge(block, num_columns_left)
+    Mirror::Column.find_smudge(block)
 }
 
 fn find_smudge_rows(block: &GridCharWorld) -> Option<usize> {
-    find_smudge(block, num_rows_above)
+    Mirror::Row.find_smudge(block)
 }
-*/
+
 fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
     Mirror::Column.num_preceding(block).map(|m| m.line)
 }
@@ -77,18 +81,20 @@ impl MirrorLine {
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum Mirror {
     Column,
-    Row
+    Row,
 }
 
 impl Mirror {
-    fn find_smudge<F: Fn(&GridCharWorld) -> Option<usize>>(
-        &self,
-        block: &GridCharWorld,
-        analyzer: F,
-    ) -> Option<usize> {
-        None
+    fn find_smudge(&self, block: &GridCharWorld) -> Option<usize> {
+        iter_smudge(block)
+            .filter_map(|(p, block)| {
+                self.num_preceding(&block)
+                    .filter(|line| line.contains(self.major_coord(p)))
+            })
+            .map(|ml| ml.line)
+            .next()
     }
-        
+
     fn num_preceding(&self, block: &GridCharWorld) -> Option<MirrorLine> {
         for major in 0..self.major_dim(block) {
             if let Some(m) = self.mirror(block, major) {
@@ -111,7 +117,11 @@ impl Mirror {
                     }
                 }
             }
-            Some(MirrorLine { line: test, start: substart, end: subend })
+            Some(MirrorLine {
+                line: test,
+                start: substart,
+                end: subend,
+            })
         } else {
             None
         }
@@ -120,7 +130,7 @@ impl Mirror {
     fn opposite(&self) -> Self {
         match self {
             Self::Column => Self::Row,
-            Self::Row => Self::Column
+            Self::Row => Self::Column,
         }
     }
 
@@ -140,10 +150,6 @@ impl Mirror {
             Self::Column => p.col as usize,
             Self::Row => p.row as usize,
         }
-    }
-
-    fn minor_coord(&self, p: Position) -> usize {
-        self.opposite().major_coord(p)
     }
 
     fn get(&self, block: &GridCharWorld, major: usize, minor: usize) -> Option<char> {
