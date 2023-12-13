@@ -10,22 +10,19 @@ use advent_code_lib::{
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let blocks = blocks_from(filename)?;
-        match part {
-            Part::One => {
-                let left_sum = block_sum(&blocks, num_columns_left);
-                let above_sum = block_sum(&blocks, num_rows_above);
-                println!("left_sum: {left_sum}");
-                println!("above_sum: {above_sum}");
-                println!("Part 1: {}", above_sum * 100 + left_sum);
-            }
-            Part::Two => {
-                let left_sum = block_sum(&blocks, find_smudge_columns);
-                let above_sum = block_sum(&blocks, find_smudge_rows);
-                println!("left_sum: {left_sum}");
-                println!("above_sum: {above_sum}");
-                println!("Part 2: {}", above_sum * 100 + left_sum);
-            }
-        }
+        let (left_sum, above_sum) = match part {
+            Part::One => (
+                block_sum(&blocks, num_columns_left),
+                block_sum(&blocks, num_rows_above),
+            ),
+            Part::Two => (
+                block_sum(&blocks, find_smudge_columns),
+                block_sum(&blocks, find_smudge_rows),
+            ),
+        };
+        println!("left_sum: {left_sum}");
+        println!("above_sum: {above_sum}");
+        println!("Part {part:?}: {}", above_sum * 100 + left_sum);
         Ok(())
     })
 }
