@@ -1,44 +1,88 @@
 use std::cmp::min;
 
-use advent_code_lib::{chooser_main, all_lines, GridCharWorld};
-
-// Part 1: 551 is too low
-// 21358 is still too low!!
+use advent_code_lib::{all_lines, chooser_main, GridCharWorld, Part, RowMajorPositionIterator};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let blocks = blocks_from(filename)?;
-        let horizontal_blocks = blocks.iter().filter_map(|b| num_columns_left(b)).collect::<Vec<_>>();
-        let vertical_blocks = blocks.iter().filter_map(|b| num_rows_above(b)).collect::<Vec<_>>();
-        let left_sum = horizontal_blocks.iter().sum::<usize>();
-        let above_sum = vertical_blocks.iter().sum::<usize>();
-        println!("num blocks: {}", blocks.len());
-        println!("left_sum: {left_sum} ({} blocks)", horizontal_blocks.len());
-        println!("above_sum: {above_sum} ({} blocks)", vertical_blocks.len());
-        println!("Part 1: {}", above_sum * 100 + left_sum);
+        match part {
+            Part::One => {
+                let left_sum = block_sum(&blocks, num_columns_left);
+                let above_sum = block_sum(&blocks, num_rows_above);
+                println!("left_sum: {left_sum}");
+                println!("above_sum: {above_sum}");
+                println!("Part 1: {}", above_sum * 100 + left_sum);
+            }
+            Part::Two => {
+                let left_sum = block_sum(&blocks, find_smudge_horizontal);
+                let above_sum = block_sum(&blocks, find_smudge_vertical);
+                println!("left_sum: {left_sum}");
+                println!("above_sum: {above_sum}");
+                println!("Part 2: {}", above_sum * 100 + left_sum);
+            }
+        }
         Ok(())
     })
+}
+
+fn block_sum<F: Fn(&GridCharWorld) -> Option<usize>>(
+    blocks: &Vec<GridCharWorld>,
+    analyzer: F,
+) -> usize {
+    //blocks.iter().filter_map(|b| analyzer(b)).sum()
+    let winners = blocks
+        .iter()
+        .filter_map(|b| analyzer(b))
+        .collect::<Vec<_>>();
+    println!("winners: {}", winners.len());
+    winners.iter().sum()
+}
+
+fn iter_smudge(block: &GridCharWorld) -> impl Iterator<Item = GridCharWorld> + '_ {
+    RowMajorPositionIterator::new(block.width(), block.height()).map(|p| {
+        let mut smudged = block.clone();
+        smudged.modify(p, |v| *v = if *v == '#' { '.' } else { '#' });
+        smudged
+    })
+}
+
+fn find_smudge<F: Fn(&GridCharWorld) -> Option<usize>>(
+    block: &GridCharWorld,
+    analyzer: F,
+) -> Option<usize> {
+    iter_smudge(block)
+        .filter_map(|smudged| analyzer(&smudged).map(|w| (smudged, w)))
+        .inspect(|(smudged, w)| {
+            println!("smudged:\n{smudged}");
+            println!("line: {}", w);
+        })
+        .map(|(_, w)| w)
+        .next()
+}
+
+fn find_smudge_horizontal(block: &GridCharWorld) -> Option<usize> {
+    find_smudge(block, num_columns_left)
+}
+
+fn find_smudge_vertical(block: &GridCharWorld) -> Option<usize> {
+    find_smudge(block, num_rows_above)
 }
 
 fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
     for col in 0..block.width() {
         if mirror_col(block, col) {
-            //println!("{block}\ncol: {col}\n");
             return Some(col);
-        }        
+        }
     }
-    println!("{block}\nH failure\n");
     None
 }
 
 fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
     for row in 0..block.height() {
         if mirror_row(block, row) {
-            //println!("{block}\nrow: {row}\n");
             return Some(row);
         }
     }
-    println!("{block}\nV failure\n");
     None
 }
 
@@ -47,13 +91,10 @@ fn mirror_col(block: &GridCharWorld, col: usize) -> bool {
     if subwidth >= 1 {
         let substart = col - subwidth;
         let subend = (substart + subwidth) * 2 - 1;
-        //println!("col: {col} sw: {subwidth} ss: {substart} se: {subend}");
         for subcol in substart..col {
             let mirror_col = subend - subcol;
-            //println!("{subcol} {mirror_col}");
             for row in 0..block.height() {
                 if block.get(subcol, row) != block.get(mirror_col, row) {
-                    //println!("Fatal row: {row} {:?} {:?}", block.get(subcol, row), block.get(mirror_col, row));
                     return false;
                 }
             }
@@ -84,13 +125,18 @@ fn mirror_row(block: &GridCharWorld, row: usize) -> bool {
 }
 
 fn blocks_from(filename: &str) -> anyhow::Result<Vec<GridCharWorld>> {
-    let input = all_lines(filename)?.map(|line| format!("{line}\n")).collect::<String>();
-    Ok(input.split("\n\n").map(|b| b.parse::<GridCharWorld>().unwrap()).collect())
+    let input = all_lines(filename)?
+        .map(|line| format!("{line}\n"))
+        .collect::<String>();
+    Ok(input
+        .split("\n\n")
+        .map(|b| b.parse::<GridCharWorld>().unwrap())
+        .collect())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{blocks_from, mirror_col, num_columns_left, mirror_row, num_rows_above};
+    use crate::{blocks_from, mirror_col, mirror_row, num_columns_left, num_rows_above};
 
     #[test]
     fn test_horizontal() {
