@@ -1,6 +1,7 @@
 use std::cmp::min;
 
 // Part two: 21325 is too low
+// Only 78 were even found (39 each direction) - I clearly missed some.
 
 use advent_code_lib::{
     all_lines, chooser_main, GridCharWorld, Part, Position, RowMajorPositionIterator,
