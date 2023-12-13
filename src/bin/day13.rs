@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
 fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
     for col in 0..block.width() {
         if mirror_col(block, col) {
-            println!("{block}\ncol: {col}\n");
+            //println!("{block}\ncol: {col}\n");
             return Some(col);
         }        
     }
@@ -34,7 +34,7 @@ fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
 fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
     for row in 0..block.height() {
         if mirror_row(block, row) {
-            println!("{block}\nrow: {row}\n");
+            //println!("{block}\nrow: {row}\n");
             return Some(row);
         }
     }
@@ -44,7 +44,7 @@ fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
 
 fn mirror_col(block: &GridCharWorld, col: usize) -> bool {
     let subwidth = min(col, block.width() - col);
-    if subwidth >= 2 {
+    if subwidth >= 1 {
         let substart = col - subwidth;
         let subend = (substart + subwidth) * 2 - 1;
         //println!("col: {col} sw: {subwidth} ss: {substart} se: {subend}");
@@ -66,7 +66,7 @@ fn mirror_col(block: &GridCharWorld, col: usize) -> bool {
 
 fn mirror_row(block: &GridCharWorld, row: usize) -> bool {
     let subheight = min(row, block.height() - row);
-    if subheight >= 2 {
+    if subheight >= 1 {
         let substart = row - subheight;
         let subend = (substart + subheight) * 2 - 1;
         for subrow in substart..row {
@@ -90,7 +90,7 @@ fn blocks_from(filename: &str) -> anyhow::Result<Vec<GridCharWorld>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{blocks_from, mirror_col, num_columns_left};
+    use crate::{blocks_from, mirror_col, num_columns_left, mirror_row, num_rows_above};
 
     #[test]
     fn test_horizontal() {
@@ -113,5 +113,8 @@ mod tests {
         let blocks = blocks_from("ex/day13_input_instances.txt").unwrap();
         assert!(mirror_col(&blocks[0], 4));
         assert_eq!(Some(4), num_columns_left(&blocks[0]));
+
+        assert!(mirror_row(&blocks[1], 14));
+        assert_eq!(Some(14), num_rows_above(&blocks[1]));
     }
 }
