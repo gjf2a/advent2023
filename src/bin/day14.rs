@@ -3,16 +3,24 @@ use advent_code_lib::{chooser_main, GridCharWorld, ManhattanDir, Part, Position,
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut rocks = GridCharWorld::from_char_file(filename)?;
-        match part {
-            Part::One => {
-                roll_rocks(&mut rocks, ManhattanDir::N);
-                println!("Part {part:?}: {}", calculate_load(&rocks));
+        if part == Part::Two {
+            for _ in 0..3 {
+                cycle_rocks(&mut rocks);
             }
-            Part::Two => {}
         }
+        println!("{rocks}");
+        
+        roll_rocks(&mut rocks, ManhattanDir::N);
+        println!("Part {part:?}: {}", calculate_load(&rocks));
 
         Ok(())
     })
+}
+
+fn cycle_rocks(rocks: &mut GridCharWorld) {
+    for dir in [ManhattanDir::N, ManhattanDir::W, ManhattanDir::S, ManhattanDir::E] {
+        roll_rocks(rocks, dir)
+    }
 }
 
 fn rock_positions(rocks: &GridCharWorld) -> impl Iterator<Item=Position> + '_ {
