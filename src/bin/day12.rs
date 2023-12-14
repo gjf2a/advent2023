@@ -1,46 +1,16 @@
-use std::{collections::VecDeque, fmt::Display, iter::repeat, str::FromStr};
+use std::{collections::VecDeque, fmt::Display, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part};
-use indexmap::IndexSet;
-
-/*
-Interesting case:
-?.?#????.? 3,1
-
-Five solutions:
-..###.#... 3,1
-..###..#.. 3,1
-..###....# 3,1
-...###.#.. 3,1
-...###...# 3,1
-
-I calculate 6:
-[[(2, 3), (3, 2), (5, 1)], [(6, 1), (7, 1), (9, 1)]]
- */
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
+
         let result = match part {
             Part::One => {
-                let prospects = all_lines(filename)?
-                    .map(|line| line.parse::<SpringProspect>().unwrap())
-                    .collect::<Vec<_>>();
-                let mut total = 0;
-                let mut total2 = 0;
-                for p in prospects.iter() {
-                    println!("{p}");
-                    let starts = p.all_starts();
-                    println!("{starts:?}");
-                    let combos = p.start_combo_counts();
-                    println!("{combos:?}");
-                    let usable1 = p.num_can_use(&starts);
-                    total += usable1;
-                    let usable2 = combos[0].iter().map(|(_, c)| *c).sum::<usize>();
-                    println!("usable: {usable1} ({usable2})");
-                    total2 += usable2;
-                }
-                println!("total: {total} ({total2})");
-                total
+                all_lines(filename)?
+                .map(|line| line.parse::<SpringProspect>().unwrap().start_combo_counts())
+                .map(|combos| combos[0].iter().map(|(_, c)| *c).sum::<usize>())
+                .sum::<usize>()
             }
             Part::Two => 999_999,
         };
@@ -56,83 +26,6 @@ struct SpringProspect {
 }
 
 impl SpringProspect {
-    fn num_can_use(&self, starts: &Vec<Vec<usize>>) -> usize {
-        self.all_solutions(starts).len()
-    }
-
-    fn all_solutions(&self, starts: &Vec<Vec<usize>>) -> IndexSet<Self> {
-        all_combos_from(starts)
-            .iter()
-            .filter_map(|combo| self.solution(combo))
-            .inspect(|s| println!("{s}"))
-            .collect()
-    }
-
-    fn solution(&self, starts: &VecDeque<usize>) -> Option<Self> {
-        assert_eq!(starts.len(), self.nums.len());
-        let codes = repeat(Code::Operational).take(self.codes.len()).collect();
-        let mut solution = Self {
-            codes,
-            nums: self.nums.clone(),
-        };
-        for (i, start) in starts.iter().enumerate() {
-            for j in *start..(*start + self.nums[i]) {
-                solution.codes[j] = Code::Damaged;
-            }
-        }
-
-        let retained_known = (0..self.codes.len())
-            .all(|i| self.codes[i] == Code::Unknown || self.codes[i] == solution.codes[i]);
-        if retained_known && solution.is_valid_solution() {
-            Some(solution)
-        } else {
-            None
-        }
-    }
-
-    fn is_valid_solution(&self) -> bool {
-        if self.codes.iter().any(|c| *c == Code::Unknown) {
-            return false;
-        }
-
-        let num_damaged = self.codes.iter().filter(|c| **c == Code::Damaged).count();
-        if num_damaged != self.nums.iter().sum() {
-            return false;
-        }
-
-        let mut sequences_left = self.nums.iter().collect::<VecDeque<_>>();
-        let mut i = 0;
-        while let Some(mut seq) = sequences_left.pop_front().copied() {
-            while self.codes[i] == Code::Operational {
-                i += 1;
-                if i == self.codes.len() {
-                    return false;
-                }
-            }
-            while seq > 0 {
-                if self.codes[i] != Code::Damaged {
-                    return false;
-                }
-                seq -= 1;
-                i += 1;
-                if i == self.codes.len() && seq > 0 {
-                    return false;
-                }
-            }
-            if i < self.codes.len() && self.codes[i] != Code::Operational {
-                return false;
-            }
-        }
-        while i < self.codes.len() {
-            if self.codes[i] != Code::Operational {
-                return false;
-            }
-            i += 1;
-        }
-
-        true
-    }
-
     fn all_starts(&self) -> Vec<Vec<usize>> {
         let mut result: Vec<Vec<usize>> = vec![];
         let mut earliest = 0;
@@ -189,7 +82,6 @@ impl SpringProspect {
                     if next_code == self.codes.len() || self.codes[next_code].possible_works() {
                         let definite_damage_after = self.codes[next_code..].iter().filter(|c| **c == Code::Damaged).count();
                         let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
-                        println!("ps: {potential_start} li: {length_index} nc: {next_code} dda: {definite_damage_after} rl: {remaining_lengths}");
                         if definite_damage_after <= remaining_lengths {
                             let definite_damage_before = self.codes[0..potential_start].iter().filter(|c| **c == Code::Damaged).count();
                             let lengths_before = self.nums[0..length_index].iter().sum::<usize>();
@@ -199,29 +91,6 @@ impl SpringProspect {
                         }
                     }
                 }
-            }
-        }
-        result
-    }
-}
-
-fn all_combos_from(starts: &Vec<Vec<usize>>) -> Vec<VecDeque<usize>> {
-    let result = all_combo_help(starts, 0);
-    println!("num combos: {}", result.len());
-    result
-}
-
-fn all_combo_help(starts: &Vec<Vec<usize>>, i: usize) -> Vec<VecDeque<usize>> {
-    if i == starts.len() - 1 {
-        starts[i].iter().map(|n| VecDeque::from([*n])).collect()
-    } else {
-        let mut result = vec![];
-        let options = all_combo_help(starts, i + 1);
-        for start in starts[i].iter() {
-            for option in options.iter() {
-                let mut version = option.clone();
-                version.push_front(*start);
-                result.push(version);
             }
         }
         result
