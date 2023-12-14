@@ -18,9 +18,15 @@ fn main() -> anyhow::Result<()> {
             println!("This implies that the sequence loops {num_loops} times, and needs to loop {leftover} more times.");
             let emulation_loops = start + leftover;
             println!("To emulate this, we should loop {emulation_loops} times from the start state.");
+            assert_eq!(TOTAL_CYCLES, emulation_loops + num_loops * length);
+            let mut test2 = rocks.clone();
+            for _ in 0..emulation_loops + length * 3 {
+                cycle_rocks(&mut test2);
+            }
             for _ in 0..emulation_loops {
                 cycle_rocks(&mut rocks);
             }
+            assert_eq!(test2, rocks);
         }
         
         roll_rocks(&mut rocks, ManhattanDir::N);
