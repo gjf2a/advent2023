@@ -87,6 +87,17 @@ enum Mirror {
 
 impl Mirror {
     fn find_smudge(&self, block: &GridCharWorld) -> Option<usize> {
+        for (p, smudged) in iter_smudge(block) {
+            if let Some(line) = self.num_preceding(&smudged) {
+                if line.contains(self.major_coord(p)) {
+                    return Some(line.line);
+                } else {
+                    println!("purged\n{smudged}\nsmudge: {p}\n");
+                }
+            }
+        }
+        None
+        /* 
         iter_smudge(block)
             .filter_map(|(p, block)| {
                 self.num_preceding(&block)
@@ -94,6 +105,7 @@ impl Mirror {
             })
             .map(|ml| ml.line)
             .next()
+            */
     }
 
     fn num_preceding(&self, block: &GridCharWorld) -> Option<MirrorLine> {
