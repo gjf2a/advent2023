@@ -6,11 +6,23 @@ use std::cmp::min;
 use advent_code_lib::{
     all_lines, chooser_main, GridCharWorld, Part, Position, RowMajorPositionIterator,
 };
+use enum_iterator::{Sequence, all};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let blocks = blocks_from(filename)?;
-        let (left_sum, above_sum) = match part {
+        let reflection_lines = lines_for(&blocks);
+        assert_eq!(blocks.len(), reflection_lines.len());
+        match part {
+            Part::One => {
+                println!("Part 1: {}", summary(&reflection_lines));
+            }
+            Part::Two => {
+                let smudge_lines = (0..blocks.len()).map(|i| smudge_for(&blocks[i], reflection_lines[i])).collect::<Vec<_>>();
+                println!("Part 2: {}", summary(&smudge_lines));
+            }
+        }
+        /*let (left_sum, above_sum) = match part {
             Part::One => (
                 block_sum(&blocks, num_columns_left),
                 block_sum(&blocks, num_rows_above),
@@ -22,9 +34,33 @@ fn main() -> anyhow::Result<()> {
         };
         println!("left_sum: {left_sum}");
         println!("above_sum: {above_sum}");
-        println!("Part {part:?}: {}", above_sum * 100 + left_sum);
+        println!("Part {part:?}: {}", above_sum * 100 + left_sum);*/
         Ok(())
     })
+}
+
+fn summary(lines: &Vec<MirrorLine>) -> usize {
+    lines.iter().map(|ml| ml.summary()).sum()
+}
+
+fn lines_for(blocks: &Vec<GridCharWorld>) -> Vec<MirrorLine> {
+    blocks.iter().map(line_for).collect()
+}
+
+fn line_for(block: &GridCharWorld) -> MirrorLine {
+    all::<Mirror>().filter_map(|m| m.num_preceding(block, None)).next().unwrap()
+}
+
+fn smudge_for(block: &GridCharWorld, mirror: MirrorLine) -> MirrorLine {
+    for (smudge, smudged) in iter_smudge(block) {
+        if let Some(line) = all::<Mirror>().filter_map(|m| m.num_preceding(&smudged, Some(mirror))).next() {
+            if line.contains(line.dir.major_coord(smudge)) {
+                return line;
+            }
+        }
+    }
+    assert!(false);
+    mirror
 }
 
 fn block_sum<F: Fn(&GridCharWorld) -> Option<usize>>(
@@ -56,15 +92,9 @@ fn find_smudge_rows(block: &GridCharWorld) -> Option<usize> {
     Mirror::Row.find_smudge(block)
 }
 
-fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Column.num_preceding(block).map(|m| m.line)
-}
-
-fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Row.num_preceding(block).map(|m| m.line)
-}
-
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 struct MirrorLine {
+    dir: Mirror,
     line: usize,
     start: usize,
     end: usize,
@@ -74,9 +104,16 @@ impl MirrorLine {
     fn contains(&self, coord: usize) -> bool {
         coord >= self.start && coord <= self.end
     }
+
+    fn summary(&self) -> usize {
+        self.line * match self.dir {
+            Mirror::Column => 1,
+            Mirror::Row => 100,
+        }
+    }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Sequence)]
 enum Mirror {
     Column,
     Row,
@@ -84,17 +121,30 @@ enum Mirror {
 
 impl Mirror {
     fn find_smudge(&self, block: &GridCharWorld) -> Option<usize> {
+        let options = iter_smudge(block)
+            .filter_map(|(p, block)| self.num_preceding(&block, None).map(|n| (n, p)))
+            .collect::<Vec<_>>();
+        let good_options = options.iter().filter(|(line, p)| line.contains(self.major_coord(*p))).collect::<Vec<_>>();
+        if good_options.len() == 1 {
+            Some(options[0].0.line)
+        } else {
+            println!("{block}");
+            None
+        }
+        /*
         for (p, smudged) in iter_smudge(block) {
             if let Some(line) = self.num_preceding(&smudged) {
                 if line.contains(self.major_coord(p)) {
                     return Some(line.line);
                 } else {
-                    println!("purged\n{smudged}\nsmudge: {p}\n");
+                    println!("{p}? {line:?}");
+                    println!("purged {self:?}\n{smudged}\n");
                 }
             }
         }
         None
-        /* 
+        */
+        /*
         iter_smudge(block)
             .filter_map(|(p, block)| {
                 self.num_preceding(&block)
@@ -105,10 +155,13 @@ impl Mirror {
             */
     }
 
-    fn num_preceding(&self, block: &GridCharWorld) -> Option<MirrorLine> {
+    fn num_preceding(&self, block: &GridCharWorld, prohibited: Option<MirrorLine>) -> Option<MirrorLine> {
         for major in 0..self.major_dim(block) {
-            if let Some(m) = self.mirror(block, major) {
-                return Some(m);
+            let m = self.mirror(block, major);
+            if m != prohibited {
+                if let Some(m) = m {
+                    return Some(m);
+                }
             }
         }
         None
@@ -128,9 +181,10 @@ impl Mirror {
                 }
             }
             Some(MirrorLine {
+                dir: *self,
                 line: test,
                 start: substart,
-                end: subend,
+                end: subend - substart,
             })
         } else {
             None
@@ -182,7 +236,18 @@ fn blocks_from(filename: &str) -> anyhow::Result<Vec<GridCharWorld>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{blocks_from, num_columns_left, num_rows_above, Mirror};
+    use advent_code_lib::GridCharWorld;
+
+    use crate::{blocks_from, Mirror};
+
+
+fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
+    Mirror::Column.num_preceding(block, None).map(|m| m.line)
+}
+
+fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
+    Mirror::Row.num_preceding(block, None).map(|m| m.line)
+}
 
     #[test]
     fn test_horizontal() {
