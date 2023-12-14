@@ -7,7 +7,11 @@ fn main() -> anyhow::Result<()> {
         let mut lines = all_lines(filename)?
             .map(|line| line.parse::<SpringProspect>().unwrap())
             .collect::<Vec<_>>();
-        if part == Part::Two {}
+        if part == Part::Two {
+            for line in lines.iter_mut() {
+                line.expand_by(5);
+            }
+        }
         let total = lines
             .iter()
             .map(|line| line.start_combo_counts())
@@ -26,6 +30,16 @@ struct SpringProspect {
 }
 
 impl SpringProspect {
+    fn expand_by(&mut self, expansion: usize) {
+        let code_suffix = self.codes.clone();
+        let num_suffix = self.nums.clone();
+        for _ in 0..(expansion - 1) {
+            self.codes.push(Code::Unknown);
+            self.codes.append(&mut code_suffix.clone());
+            self.nums.append(&mut num_suffix.clone());
+        }
+    }
+
     fn all_starts(&self) -> Vec<Vec<usize>> {
         let mut result: Vec<Vec<usize>> = vec![];
         let mut earliest = 0;
