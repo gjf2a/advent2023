@@ -189,7 +189,7 @@ impl SpringProspect {
                     if next_code == self.codes.len() || self.codes[next_code].possible_works() {
                         let definite_damage_after = self.codes[next_code..].iter().filter(|c| **c == Code::Damaged).count();
                         let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
-                        //println!("ps: {potential_start} li: {length_index} nc: {next_code} dda: {definite_damage_after} rl: {remaining_lengths}");
+                        println!("ps: {potential_start} li: {length_index} nc: {next_code} dda: {definite_damage_after} rl: {remaining_lengths}");
                         if definite_damage_after <= remaining_lengths {
                             result.push(potential_start);
                         }
@@ -297,5 +297,20 @@ impl Display for Code {
             Code::Unknown => '?',
         };
         write!(f, "{c}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::SpringProspect;
+
+    #[test]
+    fn test1() {
+        let s = "?.?#????.? 3,1";
+        println!("{s}");
+        let p = s.parse::<SpringProspect>().unwrap();
+        let combos = p.start_combo_counts();
+        let combo_str = format!("{combos:?}");
+        assert_eq!("[[(2, 3), (3, 2)], [(6, 1), (7, 1), (9, 1)]]", combo_str);
     }
 }
