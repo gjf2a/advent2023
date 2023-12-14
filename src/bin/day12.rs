@@ -3,6 +3,21 @@ use std::{collections::VecDeque, fmt::Display, iter::repeat, str::FromStr};
 use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
 
+/*
+Interesting case:
+?.?#????.? 3,1
+
+Five solutions:
+..###.#... 3,1
+..###..#.. 3,1
+..###....# 3,1
+...###.#.. 3,1
+...###...# 3,1
+
+I calculate 6:
+[[(2, 3), (3, 2), (5, 1)], [(6, 1), (7, 1), (9, 1)]]
+ */
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let result = match part {
@@ -147,8 +162,11 @@ impl SpringProspect {
             for start in starts[row].iter() {
                 let mut total = 0;
                 for (next, count) in result[0].iter() {
-                    if *start + self.nums[row] < *next {
-                        total += *count;
+                    let end = *start + self.nums[row];
+                    if end < *next {
+                        if (end..*next).all(|i| self.codes[i] != Code::Damaged) {
+                            total += *count;
+                        }
                     }
                 }
                 if total > 0 {
@@ -171,7 +189,7 @@ impl SpringProspect {
                     if next_code == self.codes.len() || self.codes[next_code].possible_works() {
                         let definite_damage_after = self.codes[next_code..].iter().filter(|c| **c == Code::Damaged).count();
                         let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
-                        println!("ps: {potential_start} li: {length_index} dda: {definite_damage_after} rl: {remaining_lengths}");
+                        //println!("ps: {potential_start} li: {length_index} nc: {next_code} dda: {definite_damage_after} rl: {remaining_lengths}");
                         if definite_damage_after <= remaining_lengths {
                             result.push(potential_start);
                         }
