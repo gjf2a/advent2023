@@ -122,7 +122,7 @@ impl SpringProspect {
         let mut result: Vec<Vec<usize>> = vec![];
         let mut earliest = 0;
         for (i, num) in self.nums.iter().enumerate() {
-            let s = self.starts_for(*num, earliest);
+            let s = self.starts_for(*num, earliest, i);
             earliest = s[0] + *num + 1;
             if i > 0 {
                 let latest = s[s.len() - 1] - 2;
@@ -160,15 +160,21 @@ impl SpringProspect {
         result
     }
 
-    fn starts_for(&self, length: usize, start: usize) -> Vec<usize> {
+    fn starts_for(&self, length: usize, start: usize, length_index: usize) -> Vec<usize> {
         let mut result = vec![];
         if length < self.codes.len() {
-            for i in start..=self.codes.len() - length {
-                if (i..(i + length)).all(|j| self.codes[j].possible_damage())
-                    && (i == 0 || self.codes[i - 1] != Code::Damaged)
+            for potential_start in start..=self.codes.len() - length {
+                if (potential_start..(potential_start + length)).all(|j| self.codes[j].possible_damage())
+                    && (potential_start == 0 || self.codes[potential_start - 1] != Code::Damaged)
                 {
-                    if i + length == self.codes.len() || self.codes[i + length].possible_works() {
-                        result.push(i);
+                    let next_code = potential_start + length;
+                    if next_code == self.codes.len() || self.codes[next_code].possible_works() {
+                        let definite_damage_after = self.codes[next_code..].iter().filter(|c| **c == Code::Damaged).count();
+                        let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
+                        println!("ps: {potential_start} li: {length_index} dda: {definite_damage_after} rl: {remaining_lengths}");
+                        if definite_damage_after <= remaining_lengths {
+                            result.push(potential_start);
+                        }
                     }
                 }
             }
