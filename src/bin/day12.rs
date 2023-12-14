@@ -4,17 +4,17 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
+        let mut lines = all_lines(filename)?
+            .map(|line| line.parse::<SpringProspect>().unwrap())
+            .collect::<Vec<_>>();
+        if part == Part::Two {}
+        let total = lines
+            .iter()
+            .map(|line| line.start_combo_counts())
+            .map(|combos| combos[0].iter().map(|(_, c)| *c).sum::<usize>())
+            .sum::<usize>();
 
-        let result = match part {
-            Part::One => {
-                all_lines(filename)?
-                .map(|line| line.parse::<SpringProspect>().unwrap().start_combo_counts())
-                .map(|combos| combos[0].iter().map(|(_, c)| *c).sum::<usize>())
-                .sum::<usize>()
-            }
-            Part::Two => 999_999,
-        };
-        println!("Part {part:?}: {result}");
+        println!("Part {part:?}: {total}");
         Ok(())
     })
 }
@@ -75,15 +75,23 @@ impl SpringProspect {
         let mut result = vec![];
         if length < self.codes.len() {
             for potential_start in start..=self.codes.len() - length {
-                if (potential_start..(potential_start + length)).all(|j| self.codes[j].possible_damage())
+                if (potential_start..(potential_start + length))
+                    .all(|j| self.codes[j].possible_damage())
                     && (potential_start == 0 || self.codes[potential_start - 1] != Code::Damaged)
                 {
                     let next_code = potential_start + length;
                     if next_code == self.codes.len() || self.codes[next_code].possible_works() {
-                        let definite_damage_after = self.codes[next_code..].iter().filter(|c| **c == Code::Damaged).count();
-                        let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
+                        let definite_damage_after = self.codes[next_code..]
+                            .iter()
+                            .filter(|c| **c == Code::Damaged)
+                            .count();
+                        let remaining_lengths =
+                            self.nums[(length_index + 1)..].iter().sum::<usize>();
                         if definite_damage_after <= remaining_lengths {
-                            let definite_damage_before = self.codes[0..potential_start].iter().filter(|c| **c == Code::Damaged).count();
+                            let definite_damage_before = self.codes[0..potential_start]
+                                .iter()
+                                .filter(|c| **c == Code::Damaged)
+                                .count();
                             let lengths_before = self.nums[0..length_index].iter().sum::<usize>();
                             if definite_damage_before <= lengths_before {
                                 result.push(potential_start);
