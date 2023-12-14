@@ -7,8 +7,16 @@ fn main() -> anyhow::Result<()> {
         let mut rocks = GridCharWorld::from_char_file(filename)?;
         roll_rocks(&mut rocks);
         println!("{rocks}");
+        println!("Part {part:?}: {}", calculate_load(&rocks));
         Ok(())
     })
+}
+
+fn calculate_load(rocks: &GridCharWorld) -> usize {
+    rocks.position_value_iter()
+    .filter(|(_, c)| **c == 'O')
+    .map(|(p, _)| rocks.width() - p.row as usize)
+    .sum()
 }
 
 fn roll_rocks(rocks: &mut GridCharWorld) {
