@@ -191,7 +191,11 @@ impl SpringProspect {
                         let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
                         println!("ps: {potential_start} li: {length_index} nc: {next_code} dda: {definite_damage_after} rl: {remaining_lengths}");
                         if definite_damage_after <= remaining_lengths {
-                            result.push(potential_start);
+                            let definite_damage_before = self.codes[0..potential_start].iter().filter(|c| **c == Code::Damaged).count();
+                            let lengths_before = self.nums[0..length_index].iter().sum::<usize>();
+                            if definite_damage_before <= lengths_before {
+                                result.push(potential_start);
+                            }
                         }
                     }
                 }
