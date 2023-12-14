@@ -1,20 +1,46 @@
+use std::collections::HashMap;
+
 use advent_code_lib::{chooser_main, GridCharWorld, ManhattanDir, Part, Position, DirType};
+
+const TOTAL_CYCLES: usize = 1000000000;
+
+// My answer of 106858 for Part 2 is too high.
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut rocks = GridCharWorld::from_char_file(filename)?;
         if part == Part::Two {
-            for _ in 0..3 {
+            let mut test = rocks.clone();
+            let (start, length) = find_seq_start_length(&mut test);
+            println!("Sequence starts at {start} and is of length {length}");
+            let num_loops = (TOTAL_CYCLES - start) / length;
+            let leftover = TOTAL_CYCLES - (start + num_loops * length);
+            println!("This implies that the sequence loops {num_loops} times, and needs to loop {leftover} more times.");
+            let emulation_loops = start + leftover;
+            println!("To emulate this, we should loop {emulation_loops} times from the start state.");
+            for _ in 0..emulation_loops {
                 cycle_rocks(&mut rocks);
             }
         }
-        println!("{rocks}");
         
         roll_rocks(&mut rocks, ManhattanDir::N);
         println!("Part {part:?}: {}", calculate_load(&rocks));
 
         Ok(())
     })
+}
+
+fn find_seq_start_length(rocks: &mut GridCharWorld) -> (usize, usize) {
+    let mut seen_already = HashMap::new();
+    let mut when = 0;
+    loop {
+        seen_already.insert(rocks.clone(), when);
+        cycle_rocks(rocks);
+        when += 1;
+        if let Some(start) = seen_already.get(&rocks) {
+            return (*start, when - start);
+        }
+    }
 }
 
 fn cycle_rocks(rocks: &mut GridCharWorld) {
