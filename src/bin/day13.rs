@@ -1,12 +1,9 @@
 use std::cmp::min;
 
-// Part two: 21325 is too low
-// Only 78 were even found (39 each direction) - I clearly missed some.
-
 use advent_code_lib::{
     all_lines, chooser_main, GridCharWorld, Part, Position, RowMajorPositionIterator,
 };
-use enum_iterator::{Sequence, all};
+use enum_iterator::{all, Sequence};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
@@ -18,23 +15,12 @@ fn main() -> anyhow::Result<()> {
                 println!("Part 1: {}", summary(&reflection_lines));
             }
             Part::Two => {
-                let smudge_lines = (0..blocks.len()).map(|i| smudge_for(&blocks[i], reflection_lines[i])).collect::<Vec<_>>();
+                let smudge_lines = (0..blocks.len())
+                    .map(|i| smudge_for(&blocks[i], reflection_lines[i]))
+                    .collect::<Vec<_>>();
                 println!("Part 2: {}", summary(&smudge_lines));
             }
         }
-        /*let (left_sum, above_sum) = match part {
-            Part::One => (
-                block_sum(&blocks, num_columns_left),
-                block_sum(&blocks, num_rows_above),
-            ),
-            Part::Two => (
-                block_sum(&blocks, find_smudge_columns),
-                block_sum(&blocks, find_smudge_rows),
-            ),
-        };
-        println!("left_sum: {left_sum}");
-        println!("above_sum: {above_sum}");
-        println!("Part {part:?}: {}", above_sum * 100 + left_sum);*/
         Ok(())
     })
 }
@@ -48,12 +34,18 @@ fn lines_for(blocks: &Vec<GridCharWorld>) -> Vec<MirrorLine> {
 }
 
 fn line_for(block: &GridCharWorld) -> MirrorLine {
-    all::<Mirror>().filter_map(|m| m.num_preceding(block, None)).next().unwrap()
+    all::<Mirror>()
+        .filter_map(|m| m.num_preceding(block, None))
+        .next()
+        .unwrap()
 }
 
 fn smudge_for(block: &GridCharWorld, mirror: MirrorLine) -> MirrorLine {
     for (smudge, smudged) in iter_smudge(block) {
-        if let Some(line) = all::<Mirror>().filter_map(|m| m.num_preceding(&smudged, Some(mirror))).next() {
+        if let Some(line) = all::<Mirror>()
+            .filter_map(|m| m.num_preceding(&smudged, Some(mirror)))
+            .next()
+        {
             if line.contains(line.dir.major_coord(smudge)) {
                 return line;
             }
@@ -63,33 +55,12 @@ fn smudge_for(block: &GridCharWorld, mirror: MirrorLine) -> MirrorLine {
     mirror
 }
 
-fn block_sum<F: Fn(&GridCharWorld) -> Option<usize>>(
-    blocks: &Vec<GridCharWorld>,
-    analyzer: F,
-) -> usize {
-    //blocks.iter().filter_map(|b| analyzer(b)).sum()
-    let winners = blocks
-        .iter()
-        .filter_map(|b| analyzer(b))
-        .collect::<Vec<_>>();
-    println!("winners: {}", winners.len());
-    winners.iter().sum()
-}
-
 fn iter_smudge(block: &GridCharWorld) -> impl Iterator<Item = (Position, GridCharWorld)> + '_ {
     RowMajorPositionIterator::new(block.width(), block.height()).map(|p| {
         let mut smudged = block.clone();
         smudged.modify(p, |v| *v = if *v == '#' { '.' } else { '#' });
         (p, smudged)
     })
-}
-
-fn find_smudge_columns(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Column.find_smudge(block)
-}
-
-fn find_smudge_rows(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Row.find_smudge(block)
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -106,10 +77,11 @@ impl MirrorLine {
     }
 
     fn summary(&self) -> usize {
-        self.line * match self.dir {
-            Mirror::Column => 1,
-            Mirror::Row => 100,
-        }
+        self.line
+            * match self.dir {
+                Mirror::Column => 1,
+                Mirror::Row => 100,
+            }
     }
 }
 
@@ -120,42 +92,11 @@ enum Mirror {
 }
 
 impl Mirror {
-    fn find_smudge(&self, block: &GridCharWorld) -> Option<usize> {
-        let options = iter_smudge(block)
-            .filter_map(|(p, block)| self.num_preceding(&block, None).map(|n| (n, p)))
-            .collect::<Vec<_>>();
-        let good_options = options.iter().filter(|(line, p)| line.contains(self.major_coord(*p))).collect::<Vec<_>>();
-        if good_options.len() == 1 {
-            Some(options[0].0.line)
-        } else {
-            println!("{block}");
-            None
-        }
-        /*
-        for (p, smudged) in iter_smudge(block) {
-            if let Some(line) = self.num_preceding(&smudged) {
-                if line.contains(self.major_coord(p)) {
-                    return Some(line.line);
-                } else {
-                    println!("{p}? {line:?}");
-                    println!("purged {self:?}\n{smudged}\n");
-                }
-            }
-        }
-        None
-        */
-        /*
-        iter_smudge(block)
-            .filter_map(|(p, block)| {
-                self.num_preceding(&block)
-                    .filter(|line| line.contains(self.major_coord(p)))
-            })
-            .map(|ml| ml.line)
-            .next()
-            */
-    }
-
-    fn num_preceding(&self, block: &GridCharWorld, prohibited: Option<MirrorLine>) -> Option<MirrorLine> {
+    fn num_preceding(
+        &self,
+        block: &GridCharWorld,
+        prohibited: Option<MirrorLine>,
+    ) -> Option<MirrorLine> {
         for major in 0..self.major_dim(block) {
             let m = self.mirror(block, major);
             if m != prohibited {
@@ -240,14 +181,13 @@ mod tests {
 
     use crate::{blocks_from, Mirror};
 
+    fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
+        Mirror::Column.num_preceding(block, None).map(|m| m.line)
+    }
 
-fn num_columns_left(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Column.num_preceding(block, None).map(|m| m.line)
-}
-
-fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
-    Mirror::Row.num_preceding(block, None).map(|m| m.line)
-}
+    fn num_rows_above(block: &GridCharWorld) -> Option<usize> {
+        Mirror::Row.num_preceding(block, None).map(|m| m.line)
+    }
 
     #[test]
     fn test_horizontal() {
