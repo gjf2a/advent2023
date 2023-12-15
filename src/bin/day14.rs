@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use advent_code_lib::{chooser_main, GridCharWorld, ManhattanDir, Part, Position, DirType};
+use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
 
 const TOTAL_CYCLES: usize = 1000000000;
 
@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
                 cycle_to_target(&mut rocks);
             }
         }
-        
+
         println!("Part {part:?}: {}", calculate_load(&rocks));
         Ok(())
     })
@@ -42,17 +42,27 @@ fn cycle_to_target(rocks: &mut GridCharWorld) {
 }
 
 fn cycle_rocks(rocks: &mut GridCharWorld) {
-    for dir in [ManhattanDir::N, ManhattanDir::W, ManhattanDir::S, ManhattanDir::E] {
+    for dir in [
+        ManhattanDir::N,
+        ManhattanDir::W,
+        ManhattanDir::S,
+        ManhattanDir::E,
+    ] {
         roll_rocks(rocks, dir)
     }
 }
 
-fn rock_positions(rocks: &GridCharWorld) -> impl Iterator<Item=Position> + '_ {
-    rocks.position_value_iter().filter(|(_, c)| **c == 'O').map(|(p,_)| *p)
+fn rock_positions(rocks: &GridCharWorld) -> impl Iterator<Item = Position> + '_ {
+    rocks
+        .position_value_iter()
+        .filter(|(_, c)| **c == 'O')
+        .map(|(p, _)| *p)
 }
 
 fn calculate_load(rocks: &GridCharWorld) -> usize {
-    rock_positions(rocks).map(|p| rocks.width() - p.row as usize).sum()
+    rock_positions(rocks)
+        .map(|p| rocks.width() - p.row as usize)
+        .sum()
 }
 
 fn roll_rocks(rocks: &mut GridCharWorld, dir: ManhattanDir) {

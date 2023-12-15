@@ -1,5 +1,5 @@
-use advent_code_lib::{chooser_main, all_lines, Part};
-use bare_metal_modulo::{ModNumC, MNum};
+use advent_code_lib::{all_lines, chooser_main, Part};
+use bare_metal_modulo::{MNum, ModNumC};
 use gapbuf::GapBuffer;
 
 const PERIOD: usize = 256;
@@ -24,25 +24,21 @@ fn main() -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct Boxes {
-    boxes: [GapBuffer<(String,u64)>; PERIOD]
+    boxes: [GapBuffer<(String, u64)>; PERIOD],
 }
 
 impl Boxes {
     fn new() -> Self {
-        Self {boxes: [0; PERIOD].map(|_| GapBuffer::new())}
+        Self {
+            boxes: [0; PERIOD].map(|_| GapBuffer::new()),
+        }
     }
 
     fn command(&mut self, s: &str) {
         let code_at = s.find(|c| c == '-' || c == '=').unwrap();
         let key = &s[..code_at];
         let box_num = modular_hash(key).a() as usize;
-        let mut within_box = None;
-        for i in 0..self.boxes[box_num].len() {
-            if self.boxes[box_num][i].0 == key {
-                within_box = Some(i);
-                break;
-            }
-        }
+        let within_box = (0..self.boxes[box_num].len()).find(|i| self.boxes[box_num][*i].0 == key);
         if &s[code_at..code_at + 1] == "-" {
             if let Some(i) = within_box {
                 self.boxes[box_num].remove(i);
@@ -61,10 +57,17 @@ impl Boxes {
     }
 
     fn calculation(&self) -> u64 {
-        self.boxes.iter().enumerate().map(|(i, b)| {
-            let factor1 = i as u64 + 1;
-            b.iter().enumerate().map(|(j, (_,focal_length))| (j as u64 + 1) * factor1 * focal_length).sum::<u64>()
-        }).sum()
+        self.boxes
+            .iter()
+            .enumerate()
+            .map(|(i, b)| {
+                let box_index = i as u64 + 1;
+                b.iter()
+                    .enumerate()
+                    .map(|(j, (_, focal_length))| (j as u64 + 1) * box_index * focal_length)
+                    .sum::<u64>()
+            })
+            .sum()
     }
 }
 
