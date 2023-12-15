@@ -46,14 +46,6 @@ impl SpringProspect {
         for (i, num) in self.nums.iter().enumerate() {
             let s = self.starts_for(*num, earliest, i);
             earliest = s[0] + *num + 1;
-            if i > 0 {
-                let latest = s[s.len() - 1] - 2;
-                for j in 0..i {
-                    while result[j][result[j].len() - 1] > latest {
-                        result[j].pop();
-                    }
-                }
-            }
             result.push(s);
         }
         result
