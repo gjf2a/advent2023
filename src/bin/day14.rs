@@ -4,39 +4,24 @@ use advent_code_lib::{chooser_main, GridCharWorld, ManhattanDir, Part, Position,
 
 const TOTAL_CYCLES: usize = 1000000000;
 
-// My answer of 106858 for Part 2 is too high.
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut rocks = GridCharWorld::from_char_file(filename)?;
-        if part == Part::Two {
-            let mut test = rocks.clone();
-            let (start, length) = find_seq_start_length(&mut test);
-            println!("Sequence starts at {start} and is of length {length}");
-            let num_loops = (TOTAL_CYCLES - start) / length;
-            let leftover = TOTAL_CYCLES - (start + num_loops * length);
-            println!("This implies that the sequence loops {num_loops} times, and needs to loop {leftover} more times.");
-            let emulation_loops = start + leftover;
-            println!("To emulate this, we should loop {emulation_loops} times from the start state.");
-            assert_eq!(TOTAL_CYCLES, emulation_loops + num_loops * length);
-            let mut test2 = rocks.clone();
-            for _ in 0..emulation_loops + length * 3 {
-                cycle_rocks(&mut test2);
+        match part {
+            Part::One => {
+                roll_rocks(&mut rocks, ManhattanDir::N);
             }
-            for _ in 0..emulation_loops {
-                cycle_rocks(&mut rocks);
+            Part::Two => {
+                cycle_to_target(&mut rocks);
             }
-            assert_eq!(test2, rocks);
         }
         
-        roll_rocks(&mut rocks, ManhattanDir::N);
         println!("Part {part:?}: {}", calculate_load(&rocks));
-
         Ok(())
     })
 }
 
-fn find_seq_start_length(rocks: &mut GridCharWorld) -> (usize, usize) {
+fn cycle_to_target(rocks: &mut GridCharWorld) {
     let mut seen_already = HashMap::new();
     let mut when = 0;
     loop {
@@ -44,7 +29,14 @@ fn find_seq_start_length(rocks: &mut GridCharWorld) -> (usize, usize) {
         cycle_rocks(rocks);
         when += 1;
         if let Some(start) = seen_already.get(&rocks) {
-            return (*start, when - start);
+            let period = when - start;
+            let num_additional_periods = (TOTAL_CYCLES - when) / period;
+            when += num_additional_periods * period;
+            while when < TOTAL_CYCLES {
+                cycle_rocks(rocks);
+                when += 1;
+            }
+            return;
         }
     }
 }
