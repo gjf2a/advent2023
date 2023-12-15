@@ -1,14 +1,71 @@
-use advent_code_lib::{chooser_main, all_lines};
+use advent_code_lib::{chooser_main, all_lines, Part};
 use bare_metal_modulo::{ModNumC, MNum};
+use gapbuf::GapBuffer;
 
 const PERIOD: usize = 256;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let line = all_lines(filename)?.next().unwrap();
-        println!("Part {part:?}: {}", initialization_hash_sum(line.as_str()));
+        let value = match part {
+            Part::One => initialization_hash_sum(line.as_str()),
+            Part::Two => {
+                let mut boxes = Boxes::new();
+                for command in line.split(",") {
+                    boxes.command(command);
+                }
+                boxes.calculation()
+            }
+        };
+        println!("Part {part:?}: {value}");
         Ok(())
     })
+}
+
+#[derive(Debug)]
+struct Boxes {
+    boxes: [GapBuffer<(String,u64)>; PERIOD]
+}
+
+impl Boxes {
+    fn new() -> Self {
+        Self {boxes: [0; PERIOD].map(|_| GapBuffer::new())}
+    }
+
+    fn command(&mut self, s: &str) {
+        let code_at = s.find(|c| c == '-' || c == '=').unwrap();
+        let key = &s[..code_at];
+        let box_num = modular_hash(key).a() as usize;
+        let mut within_box = None;
+        for i in 0..self.boxes[box_num].len() {
+            if self.boxes[box_num][i].0 == key {
+                within_box = Some(i);
+                break;
+            }
+        }
+        if &s[code_at..code_at + 1] == "-" {
+            if let Some(i) = within_box {
+                self.boxes[box_num].remove(i);
+            }
+        } else {
+            let digit = s[(code_at + 1)..].parse::<u64>().unwrap();
+            match within_box {
+                None => {
+                    self.boxes[box_num].push_back((key.to_owned(), digit));
+                }
+                Some(i) => {
+                    self.boxes[box_num][i].1 = digit;
+                }
+            }
+        }
+    }
+
+    fn calculation(&self) -> u64 {
+        self.boxes.iter().enumerate().map(|(i, b)| {
+            let factor1 = i as u64 + 1;
+            b.iter().enumerate().map(|(j, (_,focal_length))| (j as u64 + 1) * factor1 * focal_length).sum::<u64>()
+        }).sum()
+    }
 }
 
 fn initialization_hash_sum(s: &str) -> u64 {
