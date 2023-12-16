@@ -5,16 +5,14 @@ use indexmap::IndexSet;
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mirrors = GridCharWorld::from_char_file(filename)?;
-        let activated = match part {
-            Part::One => activate_tiles(&mirrors, LightBeam::default()),
-            Part::Two => {
-                for start in EdgeIterator::new(&mirrors) {
-                    println!("{start:?}");
-                }
-                activate_tiles(&mirrors, LightBeam::default()) // just to compile
-            }
+        let num_activated = match part {
+            Part::One => activate_tiles(&mirrors, LightBeam::default()).len(),
+            Part::Two => EdgeIterator::new(&mirrors)
+                .map(|start: LightBeam| activate_tiles(&mirrors, start).len())
+                .max()
+                .unwrap(),
         };
-        println!("Part {part:?}: {}", activated.len());
+        println!("Part {part:?}: {}", num_activated);
         Ok(())
     })
 }
@@ -47,10 +45,19 @@ impl EdgeIterator {
 
 fn start_for(mirrors: &GridCharWorld, dir: ManhattanDir) -> Position {
     match dir {
-        ManhattanDir::N => Position {row: mirrors.height() as isize - 1, col: 0},
-        ManhattanDir::E => Position {row: 0, col: 0},
-        ManhattanDir::S => Position {row: 0, col: mirrors.width() as isize - 1},
-        ManhattanDir::W => Position {row: mirrors.height() as isize - 1, col: mirrors.width() as isize - 1}
+        ManhattanDir::N => Position {
+            row: mirrors.height() as isize - 1,
+            col: 0,
+        },
+        ManhattanDir::E => Position { row: 0, col: 0 },
+        ManhattanDir::S => Position {
+            row: 0,
+            col: mirrors.width() as isize - 1,
+        },
+        ManhattanDir::W => Position {
+            row: mirrors.height() as isize - 1,
+            col: mirrors.width() as isize - 1,
+        },
     }
 }
 
@@ -61,7 +68,10 @@ impl Iterator for EdgeIterator {
         if self.done {
             None
         } else {
-            let result = LightBeam {p: self.current_pos, dir: self.current_beam_dir};
+            let result = LightBeam {
+                p: self.current_pos,
+                dir: self.current_beam_dir,
+            };
             let next_pos = self.current_pos_advance_dir.next_position(self.current_pos);
             if self.mirrors.in_bounds(next_pos) {
                 self.current_pos = next_pos;
