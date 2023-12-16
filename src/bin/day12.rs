@@ -44,7 +44,7 @@ impl SpringProspect {
         let mut result: Vec<Vec<usize>> = vec![];
         let mut earliest = 0;
         for (i, num) in self.nums.iter().enumerate() {
-            let s = self.starts_for(*num, earliest, i);
+            let s = self.starts_for(earliest, i);
             earliest = s[0] + *num + 1;
             result.push(s);
         }
@@ -59,15 +59,7 @@ impl SpringProspect {
         for row in (0..starts.len() - 1).rev() {
             let mut row_values = vec![];
             for start in starts[row].iter() {
-                let mut total = 0;
-                for (next, count) in result[0].iter() {
-                    let end = *start + self.nums[row];
-                    if end < *next {
-                        if (end..*next).all(|i| self.codes[i] != Code::Damaged) {
-                            total += *count;
-                        }
-                    }
-                }
+                let total = self.total_from_successors(&result[0], *start, row);
                 if total > 0 {
                     row_values.push((*start, total));
                 }
@@ -77,37 +69,63 @@ impl SpringProspect {
         result
     }
 
-    fn starts_for(&self, length: usize, start: usize, length_index: usize) -> Vec<usize> {
+    fn total_from_successors(
+        &self,
+        successors: &Vec<(usize, usize)>,
+        start: usize,
+        row: usize,
+    ) -> usize {
+        let mut total = 0;
+        for (next, count) in successors.iter() {
+            let end = start + self.nums[row];
+            if end < *next {
+                if (end..*next).all(|i| self.codes[i] != Code::Damaged) {
+                    total += *count;
+                }
+            }
+        }
+        total
+    }
+
+    fn starts_for(&self, start: usize, length_index: usize) -> Vec<usize> {
+        let length = self.nums[length_index];
         let mut result = vec![];
         if length < self.codes.len() {
             for potential_start in start..=self.codes.len() - length {
-                if (potential_start..(potential_start + length))
-                    .all(|j| self.codes[j].possible_damage())
-                    && (potential_start == 0 || self.codes[potential_start - 1] != Code::Damaged)
+                if self.usable_zone(potential_start, length)
+                    && self.neighbors_acceptable(potential_start, length_index)
                 {
-                    let next_code = potential_start + length;
-                    if next_code == self.codes.len() || self.codes[next_code].possible_works() {
-                        let definite_damage_after = self.codes[next_code..]
-                            .iter()
-                            .filter(|c| **c == Code::Damaged)
-                            .count();
-                        let remaining_lengths =
-                            self.nums[(length_index + 1)..].iter().sum::<usize>();
-                        if definite_damage_after <= remaining_lengths {
-                            let definite_damage_before = self.codes[0..potential_start]
-                                .iter()
-                                .filter(|c| **c == Code::Damaged)
-                                .count();
-                            let lengths_before = self.nums[0..length_index].iter().sum::<usize>();
-                            if definite_damage_before <= lengths_before {
-                                result.push(potential_start);
-                            }
-                        }
-                    }
+                    result.push(potential_start);
                 }
             }
         }
         result
+    }
+
+    fn usable_zone(&self, potential_start: usize, length: usize) -> bool {
+        (potential_start..(potential_start + length)).all(|j| self.codes[j].possible_damage())
+            && (potential_start == 0 || self.codes[potential_start - 1] != Code::Damaged)
+    }
+
+    fn neighbors_acceptable(&self, potential_start: usize, length_index: usize) -> bool {
+        let length = self.nums[length_index];
+        let next_code = potential_start + length;
+        if next_code == self.codes.len() || self.codes[next_code].possible_works() {
+            let damage_after = self.definite_damage(self.codes[next_code..].iter());
+            let remaining_lengths = self.nums[(length_index + 1)..].iter().sum::<usize>();
+            if damage_after <= remaining_lengths {
+                let damage_before = self.definite_damage(self.codes[0..potential_start].iter());
+                let lengths_before = self.nums[0..length_index].iter().sum::<usize>();
+                if damage_before <= lengths_before {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn definite_damage<'a>(&self, seq: impl Iterator<Item = &'a Code>) -> usize {
+        seq.filter(|c| **c == Code::Damaged).count()
     }
 }
 
