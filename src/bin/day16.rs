@@ -95,22 +95,22 @@ impl LightBeam {
 
 struct EdgeIterator {
     mirrors: GridCharWorld,
-    current_beam_dir: ManhattanDir,
+    beam_dir: ManhattanDir,
     remaining_dirs: All<ManhattanDir>,
-    current_pos: Position,
+    start_pos: Position,
     done: bool,
 }
 
 impl EdgeIterator {
     fn new(mirrors: &GridCharWorld) -> Self {
         let mut remaining_dirs = all::<ManhattanDir>();
-        let current_beam_dir = remaining_dirs.next().unwrap();
-        let current_pos = start_for(mirrors, current_beam_dir);
+        let beam_dir = remaining_dirs.next().unwrap();
+        let start_pos = start_for(mirrors, beam_dir);
         Self {
             mirrors: mirrors.clone(),
             remaining_dirs,
-            current_beam_dir,
-            current_pos,
+            beam_dir,
+            start_pos,
             done: false,
         }
     }
@@ -142,23 +142,20 @@ impl Iterator for EdgeIterator {
             None
         } else {
             let result = LightBeam {
-                p: self.current_pos,
-                dir: self.current_beam_dir,
+                p: self.start_pos,
+                dir: self.beam_dir,
             };
-            let next_pos = self
-                .current_beam_dir
-                .clockwise()
-                .next_position(self.current_pos);
+            let next_pos = self.beam_dir.clockwise().next_position(self.start_pos);
             if self.mirrors.in_bounds(next_pos) {
-                self.current_pos = next_pos;
+                self.start_pos = next_pos;
             } else {
                 match self.remaining_dirs.next() {
                     None => {
                         self.done = true;
                     }
                     Some(dir) => {
-                        self.current_beam_dir = dir;
-                        self.current_pos = start_for(&self.mirrors, dir);
+                        self.beam_dir = dir;
+                        self.start_pos = start_for(&self.mirrors, dir);
                     }
                 };
             }
