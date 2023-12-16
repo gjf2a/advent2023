@@ -36,7 +36,7 @@ impl EdgeIterator {
         let current_pos = start_for(mirrors, current_beam_dir);
         Self {
             mirrors: mirrors.clone(),
-            remaining_dirs: all::<ManhattanDir>(),
+            remaining_dirs,
             current_beam_dir,
             current_pos_advance_dir,
             current_pos,
@@ -61,25 +61,23 @@ impl Iterator for EdgeIterator {
         if self.done {
             None
         } else {
-            let next_pos = self.current_beam_dir.next_position(self.current_pos);
+            let result = LightBeam {p: self.current_pos, dir: self.current_beam_dir};
+            let next_pos = self.current_pos_advance_dir.next_position(self.current_pos);
             if self.mirrors.in_bounds(next_pos) {
-                let result = LightBeam {p: next_pos, dir: self.current_beam_dir};
                 self.current_pos = next_pos;
-                Some(result)
             } else {
                 match self.remaining_dirs.next() {
                     None => {
                         self.done = true;
-                        None
                     }
                     Some(dir) => {
                         self.current_beam_dir = dir;
                         self.current_pos_advance_dir = dir.clockwise();
                         self.current_pos = start_for(&self.mirrors, dir);
-                        Some(LightBeam {p: self.current_pos, dir})
                     }
-                }
+                };
             }
+            Some(result)
         }
     }
 }
