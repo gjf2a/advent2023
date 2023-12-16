@@ -4,8 +4,19 @@ use indexmap::IndexSet;
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mirrors = GridCharWorld::from_char_file(filename)?;
-        println!("Part {part:?}: {}", activate_tiles(&mirrors).len());
+        let activated = activate_tiles(&mirrors);
+        //print_activated(&activated, &mirrors);
+        println!("Part {part:?}: {}", activated.len());
         Ok(())
+    })
+}
+
+fn print_activated(activated: &IndexSet<Position>, mirrors: &GridCharWorld) {
+    mirrors.position_iter().for_each(|p| {
+        if p.col == 0 {
+            println!();
+        }
+        print!("{}", if activated.contains(&p) {'#'} else {'.'});
     })
 }
 
@@ -33,16 +44,16 @@ fn propagate_beam(mirrors: &GridCharWorld, beam: &LightBeam) -> Vec<LightBeam> {
     let pass = vec![beam.next_beam(beam.dir)];
     match mirrors.value(beam.p).unwrap() {
         '.' => pass,
-        '/' => vec![beam.next_beam(match beam.dir {
-            ManhattanDir::N => ManhattanDir::E,
+        '\\' => vec![beam.next_beam(match beam.dir {
+            ManhattanDir::N => ManhattanDir::W,
             ManhattanDir::E => ManhattanDir::S,
-            ManhattanDir::S => ManhattanDir::W,
+            ManhattanDir::S => ManhattanDir::E,
             ManhattanDir::W => ManhattanDir::N,
         })],
-        '\\' =>  vec![beam.next_beam(match beam.dir {
-            ManhattanDir::N => ManhattanDir::W,
+        '/' =>  vec![beam.next_beam(match beam.dir {
+            ManhattanDir::N => ManhattanDir::E,
             ManhattanDir::E => ManhattanDir::N,
-            ManhattanDir::S => ManhattanDir::E,
+            ManhattanDir::S => ManhattanDir::W,
             ManhattanDir::W => ManhattanDir::S,
         })],
         '-' => match beam.dir {
