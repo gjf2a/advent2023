@@ -23,13 +23,12 @@ struct Crucible {
     total_heat_loss: u64,
     location: Position,
     dir: ManhattanDir,
-    same_count: u64,
     last_3_moves: [Option<ManhattanDir>; 3],
 }
 
 impl Default for Crucible {
     fn default() -> Self {
-        Self { total_heat_loss: Default::default(), location: Default::default(), dir: ManhattanDir::E, last_3_moves: Default::default(), same_count: 0}
+        Self { total_heat_loss: Default::default(), location: Default::default(), dir: ManhattanDir::E, last_3_moves: Default::default() }
     }
 }
 
@@ -47,8 +46,7 @@ impl Crucible {
                 last_3_moves[i] = self.last_3_moves[i + 1];
             }
             last_3_moves[last_3_moves.len() - 1] = Some(dir);
-            let same_count = if dir == self.dir {self.same_count + 1} else {0};
-            Some(Self { total_heat_loss, location, dir, last_3_moves, same_count })
+            Some(Self { total_heat_loss, location, dir, last_3_moves })
         } else {
             None
         }
@@ -56,8 +54,7 @@ impl Crucible {
 
     fn eligible_moves(&self) -> Vec<ManhattanDir> {
         let mut result = vec![self.dir.clockwise(), self.dir.counterclockwise()];
-        if self.same_count < 3 {
-        //if !self.last_3_moves.iter().all(|m| m.map_or(false, |d| d == self.dir)) {
+        if !self.last_3_moves.iter().all(|m| m.map_or(false, |d| d == self.dir)) {
             result.push(self.dir);
         }
         result
