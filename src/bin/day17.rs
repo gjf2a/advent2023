@@ -11,9 +11,11 @@ fn main() -> anyhow::Result<()> {
 
 fn min_heat_loss(heat_loss_map: &GridDigitWorld) -> u64 {
     let goal = Position {row: heat_loss_map.height() as isize - 1, col: heat_loss_map.width() as isize - 1 };
-    let result = heuristic_search(Crucible::default(), |c| c.total_heat_loss, |c| c.location == goal, |c| c.location.manhattan_distance(goal) as u64, |c| c.successors(heat_loss_map)).node_at_goal().unwrap();
-    println!("{result:?}");
-    result.total_heat_loss
+    let result = heuristic_search(Crucible::default(), |c| c.total_heat_loss, |c| c.location == goal, |c| c.location.manhattan_distance(goal) as u64, |c| c.successors(heat_loss_map));
+    println!("enqueued: {}", result.enqueued());
+    let at_goal = result.node_at_goal().unwrap();
+    println!("{at_goal:?}");
+    at_goal.total_heat_loss
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
