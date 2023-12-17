@@ -1,9 +1,12 @@
+use std::{collections::BinaryHeap, cmp::Reverse};
+
 use advent_code_lib::{chooser_main, GridDigitWorld, heuristic_search, Position, ManhattanDir, DirType};
 use bare_metal_modulo::MNum;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
+        println!("height: {} width: {}", heat_loss_map.height(), heat_loss_map.width());
         println!("Part {part:?}: {}", min_heat_loss(&heat_loss_map));
         Ok(())
     })
@@ -11,7 +14,7 @@ fn main() -> anyhow::Result<()> {
 
 fn min_heat_loss(heat_loss_map: &GridDigitWorld) -> u64 {
     let goal = Position {row: heat_loss_map.height() as isize - 1, col: heat_loss_map.width() as isize - 1 };
-    let result = heuristic_search(Crucible::default(), |c| c.total_heat_loss, |c| c.location == goal, |c| c.location.manhattan_distance(goal) as u64, |c| c.successors(heat_loss_map));
+    let result = heuristic_search(Crucible::default(), |c| c.total_heat_loss, |c| c.location == goal, |c| c.estimate_to_goal(goal, &heat_loss_map), |c| c.successors(heat_loss_map));
     println!("enqueued: {}", result.enqueued());
     let at_goal = result.node_at_goal().unwrap();
     println!("{at_goal:?}");
@@ -50,6 +53,26 @@ impl Crucible {
         } else {
             None
         }
+    }
+
+    fn estimate_to_goal(&self, goal: Position, heat_loss_map: &GridDigitWorld) -> u64 {
+        let mut losses = BinaryHeap::new();
+        for row in self.location.row..heat_loss_map.height() as isize {
+            for col in self.location.col..heat_loss_map.width() as isize {
+                let p = Position {row, col};
+                if p != self.location {
+                    losses.push(Reverse(heat_loss_map.value(p).unwrap()));
+                }
+            }
+        }
+
+        let mut remaining_distance = self.location.manhattan_distance(goal);
+        let mut estimate = 0;
+        while remaining_distance > 0 {
+            estimate += losses.pop().unwrap().0.a() as u64;
+            remaining_distance -= 1;
+        }
+        estimate
     }
 
     fn eligible_moves(&self) -> Vec<ManhattanDir> {
