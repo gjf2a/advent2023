@@ -1,4 +1,4 @@
-use advent_code_lib::{chooser_main, DirType, GridDigitWorld, ManhattanDir, Position};
+use advent_code_lib::{chooser_main, DirType, GridDigitWorld, ManhattanDir, Position, GridCharWorld};
 use bare_metal_modulo::MNum;
 use enum_iterator::all;
 use indexmap::IndexMap;
@@ -42,10 +42,26 @@ fn main() -> anyhow::Result<()> {
             }
         }
         let (best_cost, best_path) = best.unwrap();
-        println!("best path: {best_path:?}");
+        visualize(filename, &best_path)?;
+        println!("{best_path:?}");
         println!("best cost: {best_cost} ({})", best_path.len());
         Ok(())
     })
+}
+
+fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
+    let mut chars = GridCharWorld::from_char_file(filename)?;
+    for i in 1..path.len() {
+        let c = match path[i - 1].manhattan_dir_to(path[i]).unwrap() {
+            ManhattanDir::N => '^',
+            ManhattanDir::E => '>',
+            ManhattanDir::S => 'v',
+            ManhattanDir::W => '<',
+        };
+        chars.modify(path[i], |v| *v = c);
+    }
+    println!("{chars}");
+    Ok(())
 }
 
 struct CrucibleCostTable {
