@@ -21,7 +21,13 @@ fn main() -> anyhow::Result<()> {
                 col: heat_loss_map.width() as isize - 1,
             },
         );
-        let mut best: Option<(u64, Vec<Position>)> = None;
+        while !table.finished() {
+            table.add_level();
+        }
+        let (best_cost, best_path) = table.best().unwrap();
+        visualize(filename, &best_path)?;
+        println!("Heat loss: {best_cost}");
+        /*let mut best: Option<(u64, Vec<Position>)> = None;
         loop {
             if let Some((best_cost, best_path)) = &mut best {
                 table.add_level();
@@ -46,8 +52,8 @@ fn main() -> anyhow::Result<()> {
         let (best_cost, best_path) = best.unwrap();
         visualize(filename, &best_path)?;
         println!("{best_path:?}");
-        println!("best cost: {best_cost} ({})", best_path.len());
-        //table.dump();
+        table.dump();
+        println!("best cost: {best_cost} ({})", best_path.len());*/
         Ok(())
     })
 }
@@ -69,16 +75,20 @@ fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct CrucibleCostTable {
-    table: Vec<IndexMap<(Position, usize), (u64, Vec<Position>)>>,
+    pending: Vec<IndexMap<(Position, usize), (u64, Vec<Position>)>>,
+    goal_at_level: Vec<Option<(u64, Vec<Position>)>>,
     heat_loss_map: GridDigitWorld,
     goal: Position,
 }
 
 impl CrucibleCostTable {
     fn dump(&self) {
-        for (i, level) in self.table.iter().enumerate() {
+        for (i, level) in self.pending.iter().enumerate() {
             println!("Level {i}");
-            for ((p, s), (c, v)) in level.iter() {
+            let mut keys = level.keys().collect::<Vec<_>>();
+            keys.sort();
+            for (p, s) in keys {
+                let (c, v) = level.get(&(*p, *s)).unwrap();
                 print!("{p} {s} {c}:");
                 for prev in v.iter() {
                     print!(" {prev}");
@@ -101,15 +111,18 @@ impl CrucibleCostTable {
         }
         let table = vec![zero, one];
         Self {
-            table,
+            goal_at_level: vec![None],
+            pending: table,
             heat_loss_map: heat_loss_map.clone(),
             goal,
         }
     }
 
     fn add_level(&mut self) {
+        let level_num = self.goal_at_level.len();
+        self.goal_at_level.push(None);
         let mut level = IndexMap::new();
-        for ((pos, in_a_row), (cost, path)) in self.table.last().unwrap().iter() {
+        for ((pos, in_a_row), (cost, path)) in self.pending.last().unwrap().iter() {
             let prev_dirs = self.last_n_dirs(MAX_STRAIGHT, *pos, *in_a_row);
             for dir in all::<ManhattanDir>() {
                 let last_dir = prev_dirs.last().unwrap();
@@ -117,27 +130,43 @@ impl CrucibleCostTable {
                     let streak = 1 + prev_dirs.iter().rev().take_while(|d| **d == dir).count();
                     if streak <= MAX_STRAIGHT {
                         let neighbor = dir.next_position(*pos);
-                        if let Some(loss) = self.heat_loss_map.value(neighbor) {
-                            let neighbor_cost = *cost + loss.a() as u64;
-                            let mut better = true;
-                            if let Some((other_cost, _)) = level.get(&(neighbor, streak)) {
-                                better = neighbor_cost < *other_cost;
-                            }
-                            if better {
-                                let mut new_path = path.clone();
-                                new_path.push(neighbor);
-                                level.insert((neighbor, streak), (neighbor_cost, new_path));
+                        let mut new_path = path.clone();
+                        new_path.push(neighbor);
+                        if !path.contains(&neighbor) {
+                            if let Some(loss) = self.heat_loss_map.value(neighbor) {
+                                let neighbor_cost = *cost + loss.a() as u64;
+                                if neighbor == self.goal {
+                                    if neighbor_cost < self.goal_at_level[level_num].as_ref().map_or(u64::MAX, |(c,_)| *c) {
+                                        self.goal_at_level[level_num] = Some((neighbor_cost, new_path));
+                                    }
+                                } else {
+                                    let mut better = true;
+                                    if let Some((other_cost, _)) = level.get(&(neighbor, streak)) {
+                                        better = neighbor_cost < *other_cost;
+                                    }
+                                    if better {
+                                        level.insert((neighbor, streak), (neighbor_cost, new_path));
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        self.table.push(level);
+        self.pending.push(level);
+    }
+
+    fn finished(&self) -> bool {
+        self.pending.last().unwrap().len() == 0
+    }
+
+    fn best(&self) -> Option<(u64, Vec<Position>)> {
+        self.goal_at_level.iter().filter_map(|x| x.clone()).min_by_key(|(cost, _)| *cost)
     }
 
     fn last_n_dirs(&self, n: usize, end: Position, in_a_row: usize) -> Vec<ManhattanDir> {
-        let (_, path) = self.table.last().unwrap().get(&(end, in_a_row)).unwrap();
+        let (_, path) = self.pending.last().unwrap().get(&(end, in_a_row)).unwrap();
         let path_start = if path.len() < n + 1 {
             0
         } else {
@@ -146,15 +175,5 @@ impl CrucibleCostTable {
         (path_start..path.len() - 1)
             .map(|i| path[i].manhattan_dir_to(path[i + 1]).unwrap())
             .collect()
-    }
-
-    fn at_goal(&self) -> Option<(u64, Vec<Position>)> {
-        self.table
-            .last()
-            .unwrap()
-            .iter()
-            .find(|(p, _)| p.0 == self.goal)
-            .map(|(_, r)| r)
-            .cloned()
     }
 }
