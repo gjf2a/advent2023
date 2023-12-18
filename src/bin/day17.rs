@@ -55,7 +55,7 @@ fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct CrucibleCostTable {
-    pending: Vec<IndexMap<(Position, usize), (u64, Vec<Position>)>>,
+    pending: Vec<IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)>>,
     goal_at_level: Vec<Option<(u64, Vec<Position>)>>,
     heat_loss_map: GridDigitWorld,
     goal: Position,
@@ -67,8 +67,8 @@ impl CrucibleCostTable {
             println!("Level {i}");
             let mut keys = level.keys().collect::<Vec<_>>();
             keys.sort();
-            for (p, s) in keys {
-                let (c, v) = level.get(&(*p, *s)).unwrap();
+            for (p, s, incoming) in keys {
+                let (c, ds, v) = level.get(&(*p, *s, *incoming)).unwrap();
                 print!("{p} {s} {c}:");
                 for prev in v.iter() {
                     print!(" {prev}");
@@ -81,12 +81,11 @@ impl CrucibleCostTable {
 
     fn new(heat_loss_map: &GridDigitWorld, start: Position, goal: Position) -> Self {
         let mut zero = IndexMap::new();
-        zero.insert((start, 0), (0, vec![start]));
         let mut one = IndexMap::new();
         for dir in all::<ManhattanDir>() {
             let neighbor = dir.next_position(start);
             if let Some(loss) = heat_loss_map.value(neighbor) {
-                one.insert((neighbor, 1), (loss.a() as u64, vec![start, neighbor]));
+                one.insert((neighbor, 1, dir), (loss.a() as u64, vec![dir], vec![start, neighbor]));
             }
         }
         let table = vec![zero, one];
@@ -101,10 +100,10 @@ impl CrucibleCostTable {
     fn add_level(&mut self) {
         let level_num = self.goal_at_level.len();
         self.goal_at_level.push(None);
-        let mut level = IndexMap::new();
-        for ((pos, in_a_row), (cost, path)) in self.pending.last().unwrap().iter() {
-            let prev_dirs = self.last_n_dirs(MAX_STRAIGHT, *pos, *in_a_row);
-            let last_dir = prev_dirs.last().unwrap();
+        let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)> = IndexMap::new();
+        for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.last().unwrap().iter() {
+            let dir_start = if dirs.len() < MAX_STRAIGHT {dirs.len()} else {dirs.len() - MAX_STRAIGHT};
+            let prev_dirs = &dirs[dir_start..];
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
                 let streak = 1 + prev_dirs.iter().rev().take_while(|d| **d == dir).count();
                 if streak <= MAX_STRAIGHT {
@@ -113,6 +112,8 @@ impl CrucibleCostTable {
                         if let Some(loss) = self.heat_loss_map.value(neighbor) {
                             let mut new_path = path.clone();
                             new_path.push(neighbor);
+                            let mut new_dirs = dirs.clone();
+                            new_dirs.push(dir);
                             let neighbor_cost = *cost + loss.a() as u64;
                             if neighbor == self.goal {
                                 let goal_cost = self.goal_at_level[level_num]
@@ -123,10 +124,10 @@ impl CrucibleCostTable {
                                 }
                             } else {
                                 let better = level
-                                    .get(&(neighbor, streak))
-                                    .map_or(true, |(other_cost, _)| neighbor_cost < *other_cost);
+                                    .get(&(neighbor, streak, dir))
+                                    .map_or(true, |(other_cost, _, _)| neighbor_cost < *other_cost);
                                 if better {
-                                    level.insert((neighbor, streak), (neighbor_cost, new_path));
+                                    level.insert((neighbor, streak, dir), (neighbor_cost, dirs.clone(), new_path));
                                 }
                             }
                         }
@@ -146,17 +147,5 @@ impl CrucibleCostTable {
             .iter()
             .filter_map(|x| x.clone())
             .min_by_key(|(cost, _)| *cost)
-    }
-
-    fn last_n_dirs(&self, n: usize, end: Position, in_a_row: usize) -> Vec<ManhattanDir> {
-        let (_, path) = self.pending.last().unwrap().get(&(end, in_a_row)).unwrap();
-        let path_start = if path.len() < n + 1 {
-            0
-        } else {
-            path.len() - (n + 1)
-        };
-        (path_start..path.len() - 1)
-            .map(|i| path[i].manhattan_dir_to(path[i + 1]).unwrap())
-            .collect()
     }
 }

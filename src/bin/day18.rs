@@ -2,20 +2,20 @@ use advent_code_lib::{chooser_main, Position, all_lines, ManhattanDir, DirType, 
 use enum_iterator::all;
 use indexmap::{IndexSet, IndexMap};
 
-// My answer for Part 1, 19675, is too low.
-// My next answer, 42442, is too high.
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let outline = TrenchOutline::new(filename)?;
-        println!("{}", outline.capacity());
-        println!("total cells: {}", outline.total_cells());
+        println!("Part {part:?}: {}", outline.capacity());
         Ok(())
     })
 }
 
+struct BigTrenchOutline {
+
+}
+
 struct TrenchOutline {
-    colors: IndexMap<Position, String>,
+    outline: IndexMap<Position, String>,
     min_col: isize,
     max_col: isize,
     min_row: isize,
@@ -37,7 +37,7 @@ impl TrenchOutline {
         let min_row = colors.keys().map(|p| p.row).min().unwrap();
         let max_col = colors.keys().map(|p| p.col).max().unwrap();
         let max_row = colors.keys().map(|p| p.row).max().unwrap();
-        Ok(Self { colors, min_col, max_col, min_row, max_row })
+        Ok(Self { outline: colors, min_col, max_col, min_row, max_row })
     }
 
     fn in_bounds(&self, p: Position) -> bool {
@@ -50,14 +50,14 @@ impl TrenchOutline {
         for row in self.min_row..=self.max_row {
             for col in self.min_col..=self.max_col {
                 let p = Position {row, col};
-                if self.colors.contains_key(&p) {
+                if self.outline.contains_key(&p) {
                     visited_in.insert(p);
                 } else if !visited_in.contains(&p) && !visited_out.contains(&p) {
                     let search_outcome = breadth_first_search(&p, |n, q| {
                         if self.in_bounds(*n) {
                             for dir in all::<ManhattanDir>() {
                                 let neighbor = dir.next_position(*n);
-                                if !self.colors.contains_key(&neighbor) {
+                                if !self.outline.contains_key(&neighbor) {
                                     q.enqueue(&neighbor);
                                 }
                             }
