@@ -73,6 +73,7 @@ fn min_heat_loss(heat_loss_map: &GridDigitWorld) -> u64 {
     for c in result.path().unwrap().iter() {
         print!("{} ", c.location);
     }
+    println!("Approve? {}", within_consecutive_limit(&result.path().unwrap(), 3));
     println!();
     let at_goal = result.node_at_goal().unwrap();
     println!("{at_goal:?}");
@@ -84,17 +85,17 @@ fn within_consecutive_limit(path: &VecDeque<Crucible>, limit: usize) -> bool {
     match dirs.next() {
         None => true,
         Some(mut prev) => {
-            for p in path.iter().map(|c| c.location) {
+            /*for p in path.iter().map(|c| c.location) {
                 print!("{p} ");
             }
-            print!("\n{prev:?} ");
+            print!("\n{prev:?} ");*/
             let mut consecutive = 1;
             for dir in dirs {
-                print!("{dir:?} ");
+                //print!("{dir:?} ");
                 if prev == dir {
                     consecutive += 1;
                     if consecutive > limit {
-                        println!("Exceeded limit {limit} by {consecutive} at {prev:?} to {dir:?}");
+                        //println!("Exceeded limit {limit} by {consecutive} at {prev:?} to {dir:?}");
                         return false;
                     }
                 } else {
@@ -102,7 +103,7 @@ fn within_consecutive_limit(path: &VecDeque<Crucible>, limit: usize) -> bool {
                 }
                 prev = dir;
             }
-            println!("ok");
+            //println!("ok");
             true
         }
     }
@@ -137,6 +138,7 @@ impl Crucible {
     }
 
     fn estimate_to_goal(&self, goal: Position, heat_loss_map: &GridDigitWorld) -> u64 {
+        self.location.manhattan_distance(goal) as u64/* 
         let mut losses = BinaryHeap::new();
         for row in self.location.row..heat_loss_map.height() as isize {
             for col in self.location.col..heat_loss_map.width() as isize {
@@ -153,7 +155,7 @@ impl Crucible {
             estimate += losses.pop().unwrap().0.a() as u64;
             remaining_distance -= 1;
         }
-        estimate
+        estimate*/
     }
 
     fn eligible_moves(&self) -> Vec<ManhattanDir> {
