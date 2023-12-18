@@ -94,7 +94,7 @@ impl CrucibleCostTable {
         for (pos, (cost, path)) in self.table.last().unwrap().iter() {
             let prev_dirs = self.last_n_dirs(MAX_STRAIGHT, *pos);
             for dir in all::<ManhattanDir>() {
-                let dir_ok = dir != dir.inverse()
+                let dir_ok = dir != prev_dirs.last().unwrap().inverse()
                     && (prev_dirs.len() < MAX_STRAIGHT || !prev_dirs.iter().all(|d| *d == dir));
                 if dir_ok {
                     let neighbor = dir.next_position(*pos);
