@@ -5,6 +5,8 @@ use bare_metal_modulo::MNum;
 use enum_iterator::all;
 use indexmap::IndexMap;
 
+// 736 is too high for Part 1. It enqueued 14455006 nodes and ran for 5:36.84 minutes.
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
@@ -138,6 +140,7 @@ impl Crucible {
     }
 
     fn estimate_to_goal(&self, goal: Position, heat_loss_map: &GridDigitWorld) -> u64 {
+        //println!("visiting {} {:?} {}", self.location, self.dir, self.total_heat_loss);
         self.location.manhattan_distance(goal) as u64/* 
         let mut losses = BinaryHeap::new();
         for row in self.location.row..heat_loss_map.height() as isize {
