@@ -1,4 +1,4 @@
-use advent_code_lib::{chooser_main, Position, all_lines, ManhattanDir, DirType};
+use advent_code_lib::{chooser_main, Position, all_lines, ManhattanDir, DirType, breadth_first_search, SearchQueue, ContinueSearch};
 use enum_iterator::all;
 use indexmap::{IndexSet, IndexMap};
 
@@ -45,31 +45,37 @@ impl TrenchOutline {
     }
 
     fn capacity(&self) -> usize {
-        let mut count = 0;
+        let mut visited_in = IndexSet::new();
+        let mut visited_out = IndexSet::new();
         for row in self.min_row..=self.max_row {
             for col in self.min_col..=self.max_col {
                 let p = Position {row, col};
-                if self.trench_hit_count(p) == all::<ManhattanDir>().count() {
-                    count += 1;
+                if self.colors.contains_key(&p) {
+                    visited_in.insert(p);
+                } else if !visited_in.contains(&p) && !visited_out.contains(&p) {
+                    let search_outcome = breadth_first_search(&p, |n, q| {
+                        if self.in_bounds(*n) {
+                            for dir in all::<ManhattanDir>() {
+                                let neighbor = dir.next_position(*n);
+                                if !self.colors.contains_key(&neighbor) {
+                                    q.enqueue(&neighbor);
+                                }
+                            }
+                            ContinueSearch::Yes
+                        } else {
+                            ContinueSearch::No
+                        }
+                    });
+                    let visited = search_outcome.keys().copied().collect::<IndexSet<Position>>();
+                    if visited.iter().any(|k| !self.in_bounds(*k)) {
+                        visited_out = visited_out.union(&visited).copied().collect();
+                    } else {
+                        visited_in = visited_in.union(&visited).copied().collect();
+                    }
                 }
             }
         }
-        count
-    }
-
-    fn trench_hit_count(&self, start: Position) -> usize {
-        all::<ManhattanDir>().filter(|dir| self.hits_trench_in(start, *dir)).count()
-    }
-
-    fn hits_trench_in(&self, start: Position, dir: ManhattanDir) -> bool {
-        let mut p = start;
-        while self.in_bounds(p) {
-            if self.colors.contains_key(&p) {
-                return true;
-            }
-            p = dir.next_position(p);
-        }
-        false
+        visited_in.len()
     }
 
     fn total_cells(&self) -> isize {
