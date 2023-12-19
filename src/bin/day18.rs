@@ -30,7 +30,8 @@ fn trench_area(filename: &str) -> anyhow::Result<i128> {
 }
 
 fn hex_distance(line: &str) -> anyhow::Result<i128> {
-    Ok(i128::from_str_radix(&line[6..11], 16)?)
+    let hashtag = line.find('#').unwrap();
+    Ok(i128::from_str_radix(&line[hashtag+1..hashtag + 6], 16)?)
 }
 
 fn perimeter(filename: &str) -> anyhow::Result<i128> {
@@ -49,7 +50,7 @@ fn points(filename: &str) -> anyhow::Result<Vec<(i128, i128)>> {
     let mut ps = vec![at];
     for line in all_lines(filename)? {
         let distance = hex_distance(line.as_str())?;
-        match &line[11..12] {
+        match &line[line.len() - 2..line.len() - 1] {
             "0" => {
                 at.0 += distance;
             }
