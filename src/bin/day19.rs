@@ -70,7 +70,10 @@ impl RuleGraph {
                     match destination.as_str() {
                         "A" => return Some(part.rating()),
                         "R" => return None,
-                        _ => current = destination.clone()
+                        _ => {
+                            current = destination.clone(); 
+                            break;
+                        }
                     }
                 }
             }
