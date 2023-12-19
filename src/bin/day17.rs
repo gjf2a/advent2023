@@ -1,5 +1,5 @@
 use advent_code_lib::{
-    chooser_main, DirType, GridCharWorld, GridDigitWorld, ManhattanDir, Position,
+    chooser_main, DirType, GridCharWorld, GridDigitWorld, ManhattanDir, Position, Part,
 };
 use bare_metal_modulo::MNum;
 use enum_iterator::all;
@@ -25,7 +25,10 @@ fn main() -> anyhow::Result<()> {
         );
         let mut i = 1;
         while !table.finished() {
-            table.add_level();
+            match part {
+                Part::One => table.next_level(|streak| streak <= MAX_STRAIGHT),
+                Part::Two => table.next_level(|streak| 4 <= streak && streak <= 10),
+            };
             println!("Level: {} ({})", i, table.pending.len());
             if let Some((cost, path)) = &table.solution {
                 println!("Cost: {cost}");
@@ -74,10 +77,7 @@ impl CrucibleCostTable {
         for dir in all::<ManhattanDir>() {
             let neighbor = dir.next_position(start);
             if let Some(loss) = heat_loss_map.value(neighbor) {
-                one.insert(
-                    (neighbor, 1, dir),
-                    (loss.a() as u64, vec![dir], vec![start, neighbor]),
-                );
+                one.insert((neighbor, 1, dir), (loss.a() as u64, vec![dir], vec![start, neighbor]));
             }
         }
         Self {
@@ -88,20 +88,11 @@ impl CrucibleCostTable {
         }
     }
 
-    fn add_level(&mut self) {
-        let mut level: IndexMap<
-            (Position, usize, ManhattanDir),
-            (u64, Vec<ManhattanDir>, Vec<Position>),
-        > = IndexMap::new();
+    fn next_level<F: Fn(usize)->bool>(&mut self, streak_ok: F) {
+        let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)> = IndexMap::new();
         for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
-            let dir_start = if dirs.len() < MAX_STRAIGHT {
-                dirs.len()
-            } else {
-                dirs.len() - MAX_STRAIGHT
-            };
-            let prev_dirs = &dirs[dir_start..];
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
-                let streak = 1 + prev_dirs.iter().rev().take_while(|d| **d == dir).count();
+                let streak = 1 + dirs.iter().rev().take_while(|d| **d == dir).count();
                 if streak <= MAX_STRAIGHT {
                     let neighbor = dir.next_position(*pos);
                     if !path.contains(&neighbor) {
@@ -112,8 +103,9 @@ impl CrucibleCostTable {
                             new_dirs.push(dir);
                             let neighbor_cost = *cost + loss.a() as u64;
                             if neighbor == self.goal {
-                                let goal_cost =
-                                    self.solution.as_ref().map_or(u64::MAX, |(c, _)| *c);
+                                let goal_cost = self.solution
+                                    .as_ref()
+                                    .map_or(u64::MAX, |(c, _)| *c);
                                 if neighbor_cost < goal_cost {
                                     self.solution = Some((neighbor_cost, new_path));
                                 }
@@ -122,10 +114,7 @@ impl CrucibleCostTable {
                                     .get(&(neighbor, streak, dir))
                                     .map_or(true, |(other_cost, _, _)| neighbor_cost < *other_cost);
                                 if better {
-                                    level.insert(
-                                        (neighbor, streak, dir),
-                                        (neighbor_cost, new_dirs, new_path),
-                                    );
+                                    level.insert((neighbor, streak, dir), (neighbor_cost, new_dirs, new_path));
                                 }
                             }
                         }
