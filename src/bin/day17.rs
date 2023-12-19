@@ -3,7 +3,7 @@ use advent_code_lib::{
 };
 use bare_metal_modulo::MNum;
 use enum_iterator::all;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
@@ -28,9 +28,8 @@ fn main() -> anyhow::Result<()> {
                 Part::Two => table.next_level(4, 10),
             };
             println!("Level: {} ({})", i, table.pending.len());
-            if let Some((cost, path)) = &table.solution {
+            if let Some((cost, _)) = &table.solution {
                 println!("Cost: {cost}");
-                //visualize(filename, path)?;
             }
             i += 1;
         }
@@ -46,7 +45,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
+fn visualize(filename: &str, path: &IndexSet<Position>) -> anyhow::Result<()> {
     let mut chars = GridCharWorld::from_char_file(filename)?;
     for i in 1..path.len() {
         let c = match path[i - 1].manhattan_dir_to(path[i]).unwrap() {
@@ -63,8 +62,8 @@ fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct CrucibleCostTable {
-    pending: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)>,
-    solution: Option<(u64, Vec<Position>)>,
+    pending: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, IndexSet<Position>)>,
+    solution: Option<(u64, IndexSet<Position>)>,
     heat_loss_map: GridDigitWorld,
     goal: Position,
 }
@@ -75,7 +74,10 @@ impl CrucibleCostTable {
         for dir in all::<ManhattanDir>() {
             let neighbor = dir.next_position(start);
             if let Some(loss) = heat_loss_map.value(neighbor) {
-                one.insert((neighbor, 1, dir), (loss.a() as u64, vec![dir], vec![start, neighbor]));
+                let mut prev = IndexSet::new();
+                prev.insert(start);
+                prev.insert(neighbor);
+                one.insert((neighbor, 1, dir), (loss.a() as u64, vec![dir], prev));
             }
         }
         Self {
@@ -87,8 +89,8 @@ impl CrucibleCostTable {
     }
 
     fn next_level(&mut self, streak_min: usize, streak_max: usize) {
-        let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)> = IndexMap::new();
-        for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
+        let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, IndexSet<Position>)> = IndexMap::new();
+        for ((pos, _, last_dir), (cost, dirs, path)) in self.pending.iter() {
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
                 let streak = 1 + dirs.iter().rev().take_while(|d| **d == dir).count();
                 let prev_streak = dirs.iter().rev().take_while(|d| *d == last_dir).count();
@@ -97,7 +99,7 @@ impl CrucibleCostTable {
                     if !path.contains(&neighbor) {
                         if let Some(loss) = self.heat_loss_map.value(neighbor) {
                             let mut new_path = path.clone();
-                            new_path.push(neighbor);
+                            new_path.insert(neighbor);
                             let mut new_dirs = dirs.clone();
                             new_dirs.push(dir);
                             let neighbor_cost = *cost + loss.a() as u64;
