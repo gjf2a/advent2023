@@ -7,6 +7,8 @@ use indexmap::IndexMap;
 
 const MAX_STRAIGHT: usize = 3;
 
+// Runs out of memory at level 293 with a cost of 947. That cost is too high.
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
@@ -23,10 +25,17 @@ fn main() -> anyhow::Result<()> {
                 col: heat_loss_map.width() as isize - 1,
             },
         );
+        let mut i = 1;
         while !table.finished() {
             table.add_level();
+            println!("Level: {} ({})", i, table.pending.len());
+            if let Some((cost, path)) = &table.solution {
+                println!("Cost: {cost}");
+                //visualize(filename, path)?;
+            }
+            i += 1;
         }
-        let (best_cost, best_path) = table.best().unwrap();
+        let (best_cost, best_path) = table.solution.unwrap();
         for p in best_path.iter() {
             print!("{p} ");
         }
@@ -55,32 +64,14 @@ fn visualize(filename: &str, path: &Vec<Position>) -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct CrucibleCostTable {
-    pending: Vec<IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)>>,
-    goal_at_level: Vec<Option<(u64, Vec<Position>)>>,
+    pending: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)>,
+    solution: Option<(u64, Vec<Position>)>,
     heat_loss_map: GridDigitWorld,
     goal: Position,
 }
 
 impl CrucibleCostTable {
-    fn dump(&self) {
-        for (i, level) in self.pending.iter().enumerate() {
-            println!("Level {i}");
-            let mut keys = level.keys().collect::<Vec<_>>();
-            keys.sort();
-            for (p, s, incoming) in keys {
-                let (c, ds, v) = level.get(&(*p, *s, *incoming)).unwrap();
-                print!("{p} {s} {c}:");
-                for prev in v.iter() {
-                    print!(" {prev}");
-                }
-                println!();
-            }
-            println!();
-        }
-    }
-
     fn new(heat_loss_map: &GridDigitWorld, start: Position, goal: Position) -> Self {
-        let mut zero = IndexMap::new();
         let mut one = IndexMap::new();
         for dir in all::<ManhattanDir>() {
             let neighbor = dir.next_position(start);
@@ -88,20 +79,17 @@ impl CrucibleCostTable {
                 one.insert((neighbor, 1, dir), (loss.a() as u64, vec![dir], vec![start, neighbor]));
             }
         }
-        let table = vec![zero, one];
         Self {
-            goal_at_level: vec![None],
-            pending: table,
+            solution: None,
+            pending: one,
             heat_loss_map: heat_loss_map.clone(),
             goal,
         }
     }
 
     fn add_level(&mut self) {
-        let level_num = self.goal_at_level.len();
-        self.goal_at_level.push(None);
         let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)> = IndexMap::new();
-        for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.last().unwrap().iter() {
+        for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
             let dir_start = if dirs.len() < MAX_STRAIGHT {dirs.len()} else {dirs.len() - MAX_STRAIGHT};
             let prev_dirs = &dirs[dir_start..];
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
@@ -116,11 +104,11 @@ impl CrucibleCostTable {
                             new_dirs.push(dir);
                             let neighbor_cost = *cost + loss.a() as u64;
                             if neighbor == self.goal {
-                                let goal_cost = self.goal_at_level[level_num]
+                                let goal_cost = self.solution
                                     .as_ref()
                                     .map_or(u64::MAX, |(c, _)| *c);
                                 if neighbor_cost < goal_cost {
-                                    self.goal_at_level[level_num] = Some((neighbor_cost, new_path));
+                                    self.solution = Some((neighbor_cost, new_path));
                                 }
                             } else {
                                 let better = level
@@ -135,17 +123,10 @@ impl CrucibleCostTable {
                 }
             }
         }
-        self.pending.push(level);
+        std::mem::swap(&mut self.pending, &mut level);
     }
 
     fn finished(&self) -> bool {
-        self.pending.last().unwrap().len() == 0
-    }
-
-    fn best(&self) -> Option<(u64, Vec<Position>)> {
-        self.goal_at_level
-            .iter()
-            .filter_map(|x| x.clone())
-            .min_by_key(|(cost, _)| *cost)
+        self.pending.len() == 0
     }
 }
