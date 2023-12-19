@@ -33,7 +33,7 @@ fn main() -> anyhow::Result<()> {
         println!();
         visualize(filename, &best_path)?;
         println!("Heat loss: {best_cost}");
-        table.dump();
+        //table.dump();
         Ok(())
     })
 }
@@ -127,7 +127,7 @@ impl CrucibleCostTable {
                                     .get(&(neighbor, streak, dir))
                                     .map_or(true, |(other_cost, _, _)| neighbor_cost < *other_cost);
                                 if better {
-                                    level.insert((neighbor, streak, dir), (neighbor_cost, dirs.clone(), new_path));
+                                    level.insert((neighbor, streak, dir), (neighbor_cost, new_dirs, new_path));
                                 }
                             }
                         }
