@@ -31,11 +31,13 @@ fn trench_area(filename: &str) -> anyhow::Result<i128> {
 
 fn hex_distance(line: &str) -> anyhow::Result<i128> {
     let hashtag = line.find('#').unwrap();
-    Ok(i128::from_str_radix(&line[hashtag+1..hashtag + 6], 16)?)
+    Ok(i128::from_str_radix(&line[hashtag + 1..hashtag + 6], 16)?)
 }
 
 fn perimeter(filename: &str) -> anyhow::Result<i128> {
-    Ok(all_lines(filename)?.map(|line| hex_distance(line.as_str()).unwrap()).sum())
+    Ok(all_lines(filename)?
+        .map(|line| hex_distance(line.as_str()).unwrap())
+        .sum())
 }
 
 fn shoelace(points: &Vec<(i128, i128)>) -> i128 {

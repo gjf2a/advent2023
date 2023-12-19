@@ -55,23 +55,15 @@ impl Rule {
                 op,
                 value,
                 outcome,
-            } => match op {
-                '>' => {
-                    if part.ratings.get(rating).unwrap() > value {
-                        Some(outcome.clone())
-                    } else {
-                        None
-                    }
-                }
-                '<' => {
-                    if part.ratings.get(rating).unwrap() < value {
-                        Some(outcome.clone())
-                    } else {
-                        None
-                    }
-                }
-                _ => panic!("Unrecognized op {op}"),
-            },
+            } => part
+                .ratings
+                .get(rating)
+                .filter(|v| match op {
+                    '<' => *v < value,
+                    '>' => *v > value,
+                    _ => panic!("oops"),
+                })
+                .map(|_| outcome.clone()),
         }
     }
 }
