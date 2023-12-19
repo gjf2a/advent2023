@@ -16,24 +16,23 @@ fn main() -> anyhow::Result<()> {
             Part::Two => (4, 10),
         };
         let goal = Position {row: heat_loss_map.height() as isize - 1, col: heat_loss_map.width() as isize - 1 };
-        let result = heuristic_search(CrucibleStatus::default(), |c| c.total_heat_loss, |c| c.p == goal && c.streak >= streak_min, |c| c.p.manhattan_distance(goal) as u64, |c, p| {
+        let result = heuristic_search(CrucibleStatus::default(), |c| c.p == goal && c.streak >= streak_min, |c| c.p.manhattan_distance(goal) as u64, |c, cost, p| {
             let mut result = vec![];
+            let path_back = p.path_back_from(c);
             for dir in [c.incoming, c.incoming.clockwise(), c.incoming.counterclockwise()] {
                 if (dir != c.incoming || c.streak < streak_max) && (dir == c.incoming || c.streak >= streak_min) {
                     let neighbor = dir.next_position(c.p);
-                    let path_back = p.path_back_from(c);
-                    if path_back.map_or(true, |path| path.iter().all(|pc| pc.p != neighbor)) {
+                    if path_back.as_ref().map_or(true, |path| path.iter().all(|pc| pc.p != neighbor)) {
                         if let Some(loss) = heat_loss_map.value(neighbor) {
-                            let total_heat_loss = c.total_heat_loss + loss.a() as u64;
                             let streak = if dir == c.incoming {c.streak + 1} else {1};
-                            result.push(CrucibleStatus { p: neighbor, streak, incoming: dir, total_heat_loss });
+                            result.push((CrucibleStatus { p: neighbor, streak, incoming: dir }, loss.a() as u64));
                         }
                     }
                 }
             }
             result
         });
-        let total_heat_loss = result.node_at_goal().unwrap().total_heat_loss;
+        let total_heat_loss = result.cost().unwrap();
         let path_back = result.path().unwrap();
         visualize(filename, path_back.iter().map(|c| c.p))?;
         println!("enqueued: {}", result.enqueued());
@@ -48,12 +47,11 @@ struct CrucibleStatus {
     p: Position,
     streak: usize,
     incoming: ManhattanDir,
-    total_heat_loss: u64,
 }
 
 impl Default for CrucibleStatus {
     fn default() -> Self {
-        Self { p: Default::default(), streak: 0, incoming: ManhattanDir::E, total_heat_loss: 0 }
+        Self { p: Default::default(), streak: 0, incoming: ManhattanDir::E }
     }
 }
 
