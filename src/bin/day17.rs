@@ -24,8 +24,8 @@ fn main() -> anyhow::Result<()> {
         let mut i = 1;
         while !table.finished() {
             match part {
-                Part::One => table.next_level(|streak| streak <= 3),
-                Part::Two => table.next_level(|streak| 4 <= streak && streak <= 10),
+                Part::One => table.next_level(1, 3),
+                Part::Two => table.next_level(4, 10),
             };
             println!("Level: {} ({})", i, table.pending.len());
             if let Some((cost, path)) = &table.solution {
@@ -86,12 +86,12 @@ impl CrucibleCostTable {
         }
     }
 
-    fn next_level<F: Fn(usize)->bool>(&mut self, streak_ok: F) {
+    fn next_level(&mut self, streak_min: usize, streak_max: usize) {
         let mut level: IndexMap<(Position, usize, ManhattanDir), (u64, Vec<ManhattanDir>, Vec<Position>)> = IndexMap::new();
         for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
                 let streak = 1 + dirs.iter().rev().take_while(|d| **d == dir).count();
-                if streak_ok(streak) {
+                if streak <= streak_max {
                     let neighbor = dir.next_position(*pos);
                     if !path.contains(&neighbor) {
                         if let Some(loss) = self.heat_loss_map.value(neighbor) {
@@ -104,7 +104,7 @@ impl CrucibleCostTable {
                                 let goal_cost = self.solution
                                     .as_ref()
                                     .map_or(u64::MAX, |(c, _)| *c);
-                                if neighbor_cost < goal_cost {
+                                if streak >= streak_min && neighbor_cost < goal_cost {
                                     self.solution = Some((neighbor_cost, new_path));
                                 }
                             } else {
