@@ -5,8 +5,6 @@ use bare_metal_modulo::MNum;
 use enum_iterator::all;
 use indexmap::IndexMap;
 
-const MAX_STRAIGHT: usize = 3;
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
@@ -26,7 +24,7 @@ fn main() -> anyhow::Result<()> {
         let mut i = 1;
         while !table.finished() {
             match part {
-                Part::One => table.next_level(|streak| streak <= MAX_STRAIGHT),
+                Part::One => table.next_level(|streak| streak <= 3),
                 Part::Two => table.next_level(|streak| 4 <= streak && streak <= 10),
             };
             println!("Level: {} ({})", i, table.pending.len());
@@ -93,7 +91,7 @@ impl CrucibleCostTable {
         for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
                 let streak = 1 + dirs.iter().rev().take_while(|d| **d == dir).count();
-                if streak <= MAX_STRAIGHT {
+                if streak_ok(streak) {
                     let neighbor = dir.next_position(*pos);
                     if !path.contains(&neighbor) {
                         if let Some(loss) = self.heat_loss_map.value(neighbor) {
