@@ -1,6 +1,6 @@
-use std::{str::FromStr, fmt::Display};
+use std::{fmt::Display, str::FromStr};
 
-use advent_code_lib::{chooser_main, all_lines};
+use advent_code_lib::{all_lines, chooser_main};
 use indexmap::IndexMap;
 
 fn main() -> anyhow::Result<()> {
@@ -10,7 +10,10 @@ fn main() -> anyhow::Result<()> {
         for part in parts.iter() {
             println!("{part}");
         }
-        let total = parts.iter().filter_map(|part| graph.accepts(part)).sum::<u64>();
+        let total = parts
+            .iter()
+            .filter_map(|part| graph.accepts(part))
+            .sum::<u64>();
         println!("Part {problem:?}: {total}");
         Ok(())
     })
@@ -18,12 +21,12 @@ fn main() -> anyhow::Result<()> {
 
 #[derive(Clone, Default)]
 struct RuleGraph {
-    rules: IndexMap<String,Vec<Rule>>
+    rules: IndexMap<String, Vec<Rule>>,
 }
 
 #[derive(Default)]
 struct Part {
-    ratings: IndexMap<char,u64>
+    ratings: IndexMap<char, u64>,
 }
 
 impl Part {
@@ -34,29 +37,41 @@ impl Part {
 
 #[derive(Clone)]
 enum Rule {
-    Condition {rating: char, op: char, value: u64, outcome: String},
-    Uncondition(String)
+    Condition {
+        rating: char,
+        op: char,
+        value: u64,
+        outcome: String,
+    },
+    Uncondition(String),
 }
 
 impl Rule {
     fn match_for(&self, part: &Part) -> Option<String> {
         match self {
             Self::Uncondition(s) => Some(s.clone()),
-            Self::Condition { rating, op, value, outcome } => {
-                match op {
-                    '>' => if part.ratings.get(rating).unwrap() > value {
+            Self::Condition {
+                rating,
+                op,
+                value,
+                outcome,
+            } => match op {
+                '>' => {
+                    if part.ratings.get(rating).unwrap() > value {
                         Some(outcome.clone())
                     } else {
                         None
-                    },
-                    '<' => if part.ratings.get(rating).unwrap() < value {
-                        Some(outcome.clone())
-                    } else {
-                        None
-                    },
-                    _ => panic!("Unrecognized op {op}")
+                    }
                 }
-            }
+                '<' => {
+                    if part.ratings.get(rating).unwrap() < value {
+                        Some(outcome.clone())
+                    } else {
+                        None
+                    }
+                }
+                _ => panic!("Unrecognized op {op}"),
+            },
         }
     }
 }
@@ -71,7 +86,7 @@ impl RuleGraph {
                         "A" => return Some(part.rating()),
                         "R" => return None,
                         _ => {
-                            current = destination.clone(); 
+                            current = destination.clone();
                             break;
                         }
                     }
@@ -93,7 +108,7 @@ impl RuleGraph {
     }
 }
 
-fn input(filename: &str) -> anyhow::Result<(RuleGraph,Vec<Part>)> {
+fn input(filename: &str) -> anyhow::Result<(RuleGraph, Vec<Part>)> {
     let mut first = true;
     let mut graph = RuleGraph::default();
     let mut parts = vec![];
@@ -121,7 +136,12 @@ impl FromStr for Rule {
             let rating = chars.next().unwrap();
             let op = chars.next().unwrap();
             let value = chars.collect::<String>().parse::<u64>()?;
-            Ok(Self::Condition { rating, op, value, outcome: outcome.to_owned() })
+            Ok(Self::Condition {
+                rating,
+                op,
+                value,
+                outcome: outcome.to_owned(),
+            })
         } else {
             Ok(Self::Uncondition(s.to_owned()))
         }
@@ -146,8 +166,13 @@ impl FromStr for Part {
 impl Display for Rule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Rule::Condition { rating, op, value, outcome } => write!(f, "{rating}{op}{value}:{outcome},"),
-            Rule::Uncondition(n) => write!(f, "{n}")
+            Rule::Condition {
+                rating,
+                op,
+                value,
+                outcome,
+            } => write!(f, "{rating}{op}{value}:{outcome},"),
+            Rule::Uncondition(n) => write!(f, "{n}"),
         }
     }
 }
@@ -170,7 +195,9 @@ impl Display for Part {
         write!(f, "{{")?;
         let mut first = true;
         for (k, v) in self.ratings.iter() {
-            if !first {write!(f, ",")?;}
+            if !first {
+                write!(f, ",")?;
+            }
             first = false;
             write!(f, "{k}={v}")?;
         }
