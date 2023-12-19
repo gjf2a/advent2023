@@ -105,7 +105,7 @@ impl CrucibleCostTable {
                                 let goal_cost = self.solution
                                     .as_ref()
                                     .map_or(u64::MAX, |(c, _)| *c);
-                                if neighbor_cost < goal_cost {
+                                if streak >= streak_min && neighbor_cost < goal_cost {
                                     self.solution = Some((neighbor_cost, new_path));
                                 }
                             } else {
