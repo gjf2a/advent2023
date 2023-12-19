@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{collections::VecDeque, fmt::Display, ops::RangeInclusive, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main};
 use indexmap::IndexMap;
@@ -10,13 +10,86 @@ fn main() -> anyhow::Result<()> {
         for part in parts.iter() {
             println!("{part}");
         }
-        let total = parts
-            .iter()
-            .filter_map(|part| graph.accepts(part))
-            .sum::<u64>();
-        println!("Part {problem:?}: {total}");
+        match problem {
+            advent_code_lib::Part::One => {
+                let total = parts
+                    .iter()
+                    .filter_map(|part| graph.accepts(part))
+                    .sum::<u128>();
+                println!("Part {problem:?}: {total}");
+            }
+            advent_code_lib::Part::Two => {
+                println!("Part {problem:?}: {}", Searcher::search(&graph).score());
+            }
+        }
+
         Ok(())
     })
+}
+
+#[derive(Clone)]
+struct EligibleParts {
+    ranges: IndexMap<char, RangeInclusive<u128>>,
+}
+
+impl EligibleParts {
+    fn new() -> Self {
+        let mut ranges = IndexMap::new();
+        for c in "xmas".chars() {
+            ranges.insert(c, 1..=4000);
+        }
+        Self { ranges }
+    }
+
+    fn replaced(&self, rating: char, new_range: RangeInclusive<u128>) -> Self {
+        let mut result = self.clone();
+        result.ranges.insert(rating, new_range);
+        result
+    }
+
+    fn score(&self) -> u128 {
+        self.ranges.values().map(|r| r.end() - r.start() + 1).sum()
+    }
+}
+
+struct Searcher {
+    graph: RuleGraph,
+    accept: Vec<EligibleParts>,
+}
+
+impl Searcher {
+    fn score(&self) -> u128 {
+        self.accept.iter().map(|ep| ep.score()).product()
+    }
+
+    fn search(graph: &RuleGraph) -> Self {
+        let mut result = Self {
+            graph: graph.clone(),
+            accept: vec![],
+        };
+        result.search_help("in", EligibleParts::new());
+        result
+    }
+
+    fn search_help(&mut self, current: &str, eligible: EligibleParts) {
+        let mut eligible = eligible;
+        let rules = self.graph.rules.get(current).unwrap().clone();
+        for rule in rules.iter() {
+            let (yes, no) = rule.split(&eligible);
+            if let Some((parts, name)) = yes {
+                match name.as_str() {
+                    "A" => self.accept.push(parts),
+                    "R" => {}
+                    _ => self.search_help(name.as_str(), parts),
+                };
+            }
+            if let Some(parts) = no {
+                eligible = parts;
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 #[derive(Clone, Default)]
@@ -26,11 +99,11 @@ struct RuleGraph {
 
 #[derive(Default)]
 struct Part {
-    ratings: IndexMap<char, u64>,
+    ratings: IndexMap<char, u128>,
 }
 
 impl Part {
-    fn rating(&self) -> u64 {
+    fn rating(&self) -> u128 {
         self.ratings.values().sum()
     }
 }
@@ -39,37 +112,80 @@ impl Part {
 enum Rule {
     Condition {
         rating: char,
-        op: char,
-        value: u64,
+        cond: RuleCond,
+        value: u128,
         outcome: String,
     },
     Uncondition(String),
 }
 
+#[derive(Copy, Clone)]
+enum RuleCond {
+    Less,
+    Greater,
+}
+
+impl RuleCond {
+    fn check(&self, left: u128, right: u128) -> bool {
+        match self {
+            Self::Less => left < right,
+            Self::Greater => left > right,
+        }
+    }
+
+    fn range_yes_no(
+        &self,
+        range: &RangeInclusive<u128>,
+        cutoff: u128,
+    ) -> (RangeInclusive<u128>, RangeInclusive<u128>) {
+        match self {
+            Self::Less => (*range.start()..=(cutoff - 1), cutoff..=*range.end()),
+            Self::Greater => ((cutoff + 1)..=*range.end(), *range.start()..=cutoff),
+        }
+    }
+}
+
 impl Rule {
+    fn split(
+        &self,
+        eligible: &EligibleParts,
+    ) -> (Option<(EligibleParts, String)>, Option<EligibleParts>) {
+        match self {
+            Self::Uncondition(s) => (Some((eligible.clone(), s.clone())), None),
+            Self::Condition {
+                rating,
+                cond,
+                value,
+                outcome,
+            } => {
+                let (yes, no) = cond.range_yes_no(eligible.ranges.get(rating).unwrap(), *value);
+                (
+                    Some((eligible.replaced(*rating, yes), outcome.clone())),
+                    Some(eligible.replaced(*rating, no)),
+                )
+            }
+        }
+    }
+
     fn match_for(&self, part: &Part) -> Option<String> {
         match self {
             Self::Uncondition(s) => Some(s.clone()),
             Self::Condition {
                 rating,
-                op,
+                cond,
                 value,
                 outcome,
             } => part
                 .ratings
                 .get(rating)
-                .filter(|v| match op {
-                    '<' => *v < value,
-                    '>' => *v > value,
-                    _ => panic!("oops"),
-                })
+                .filter(|v| cond.check(**v, *value))
                 .map(|_| outcome.clone()),
         }
     }
 }
 
 impl RuleGraph {
-    fn accepts(&self, part: &Part) -> Option<u64> {
+    fn accepts(&self, part: &Part) -> Option<u128> {
         let mut current = "in".to_owned();
         loop {
             for rule in self.rules.get(current.as_str()).unwrap().iter() {
@@ -127,10 +243,15 @@ impl FromStr for Rule {
             let mut chars = cond.chars();
             let rating = chars.next().unwrap();
             let op = chars.next().unwrap();
-            let value = chars.collect::<String>().parse::<u64>()?;
+            let cond = if op == '<' {
+                RuleCond::Less
+            } else {
+                RuleCond::Greater
+            };
+            let value = chars.collect::<String>().parse::<u128>()?;
             Ok(Self::Condition {
                 rating,
-                op,
+                cond,
                 value,
                 outcome: outcome.to_owned(),
             })
@@ -148,10 +269,19 @@ impl FromStr for Part {
         for rating in s.replace(&['{', '}'], " ").trim().split(',') {
             let mut assign = rating.split('=');
             let key = assign.next().unwrap();
-            let value = assign.next().unwrap().parse::<u64>()?;
+            let value = assign.next().unwrap().parse::<u128>()?;
             result.ratings.insert(key.chars().next().unwrap(), value);
         }
         Ok(result)
+    }
+}
+
+impl Display for RuleCond {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Less => write!(f, "<"),
+            Self::Greater => write!(f, ">"),
+        }
     }
 }
 
@@ -160,10 +290,10 @@ impl Display for Rule {
         match self {
             Rule::Condition {
                 rating,
-                op,
+                cond,
                 value,
                 outcome,
-            } => write!(f, "{rating}{op}{value}:{outcome},"),
+            } => write!(f, "{rating}{cond}{value}:{outcome},"),
             Rule::Uncondition(n) => write!(f, "{n}"),
         }
     }
