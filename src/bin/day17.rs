@@ -91,8 +91,8 @@ impl CrucibleCostTable {
         for ((pos, in_a_row, last_dir), (cost, dirs, path)) in self.pending.iter() {
             for dir in [*last_dir, last_dir.clockwise(), last_dir.counterclockwise()] {
                 let streak = 1 + dirs.iter().rev().take_while(|d| **d == dir).count();
-                println!("{pos} {dir:?} ({last_dir:?}) {streak} {} {} {}", dir == *last_dir, streak >= streak_min, streak <= streak_max);
-                if (dir == *last_dir || streak >= streak_min) && streak <= streak_max {
+                let prev_streak = dirs.iter().rev().take_while(|d| *d == last_dir).count();
+                if (dir == *last_dir || prev_streak >= streak_min) && streak <= streak_max {
                     let neighbor = dir.next_position(*pos);
                     if !path.contains(&neighbor) {
                         if let Some(loss) = self.heat_loss_map.value(neighbor) {
