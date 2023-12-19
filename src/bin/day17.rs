@@ -7,8 +7,6 @@ use indexmap::IndexMap;
 
 const MAX_STRAIGHT: usize = 3;
 
-// Runs out of memory at level 293 with a cost of 947. That cost is too high.
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
