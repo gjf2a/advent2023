@@ -16,10 +16,10 @@ fn main() -> anyhow::Result<()> {
             Part::Two => (4, 10),
         };
         let goal = Position {row: heat_loss_map.height() as isize - 1, col: heat_loss_map.width() as isize - 1 };
-        let result = heuristic_search(CrucibleStatus::default(), |c| c.total_heat_loss, |c| c.p == goal, |c| c.p.manhattan_distance(goal) as u64, |c, p| {
+        let result = heuristic_search(CrucibleStatus::default(), |c| c.total_heat_loss, |c| c.p == goal && c.streak >= streak_min, |c| c.p.manhattan_distance(goal) as u64, |c, p| {
             let mut result = vec![];
             for dir in [c.incoming, c.incoming.clockwise(), c.incoming.counterclockwise()] {
-                if dir != c.incoming || c.streak < streak_max && dir == c.incoming || c.streak >= streak_min {
+                if (dir != c.incoming || c.streak < streak_max) && (dir == c.incoming || c.streak >= streak_min) {
                     let neighbor = dir.next_position(c.p);
                     let path_back = p.path_back_from(c);
                     if path_back.map_or(true, |path| path.iter().all(|pc| pc.p != neighbor)) {
@@ -36,6 +36,7 @@ fn main() -> anyhow::Result<()> {
         let total_heat_loss = result.node_at_goal().unwrap().total_heat_loss;
         let path_back = result.path().unwrap();
         visualize(filename, path_back.iter().map(|c| c.p))?;
+        println!("enqueued: {}", result.enqueued());
         println!("Part {part:?}: {total_heat_loss}");
         
         Ok(())
