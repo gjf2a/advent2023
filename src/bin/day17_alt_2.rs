@@ -1,8 +1,11 @@
+use std::{collections::BinaryHeap, cmp::Reverse};
+
 use advent_code_lib::{
     chooser_main, heuristic_search, DirType, GridCharWorld, GridDigitWorld, ManhattanDir, Part,
     Position,
 };
 use bare_metal_modulo::MNum;
+use indexmap::IndexMap;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
@@ -20,10 +23,11 @@ fn main() -> anyhow::Result<()> {
             row: heat_loss_map.height() as isize - 1,
             col: heat_loss_map.width() as isize - 1,
         };
+        let preloaded = heat_loss_map.position_iter().map(|p| (p, heuristic(&heat_loss_map, goal, p))).collect::<IndexMap<_,_>>();
         let result = heuristic_search(
             CrucibleStatus::default(),
             |c| c.p == goal && c.streak >= streak_min,
-            |c| c.p.manhattan_distance(goal) as u64,
+            |c| preloaded.get(&c.p).copied().unwrap(),
             |c, p| {
                 let mut result = vec![];
                 let path_back = p.path_back_from(c);
@@ -82,6 +86,26 @@ impl Default for CrucibleStatus {
             incoming: ManhattanDir::E,
         }
     }
+}
+
+fn heuristic(heat_loss_map: &GridDigitWorld, goal: Position, location: Position) -> u64 {
+    let mut losses = BinaryHeap::new();
+    for row in location.row..heat_loss_map.height() as isize {
+        for col in location.col..heat_loss_map.width() as isize {
+            let p = Position {row, col};
+            if p != location {
+                losses.push(Reverse(heat_loss_map.value(p).unwrap()));
+            }
+        }
+    }
+
+    let mut remaining_distance = location.manhattan_distance(goal);
+    let mut estimate = 0;
+    while remaining_distance > 0 {
+        estimate += losses.pop().unwrap().0.a() as u64;
+        remaining_distance -= 1;
+    }
+    estimate
 }
 
 fn visualize(filename: &str, mut path: impl Iterator<Item = Position>) -> anyhow::Result<()> {
