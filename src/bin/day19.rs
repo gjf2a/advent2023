@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt::Display, ops::RangeInclusive, str::FromStr};
+use std::{fmt::Display, ops::RangeInclusive, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main};
 use indexmap::IndexMap;
@@ -19,7 +19,11 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {problem:?}: {total}");
             }
             advent_code_lib::Part::Two => {
-                println!("Part {problem:?}: {}", Searcher::search(&graph).score());
+                let searcher = Searcher::search(&graph);
+                for eligible in searcher.accept.iter() {
+                    println!("{eligible:?} {}", eligible.score());
+                }
+                println!("Part {problem:?}: {}", searcher.score());
             }
         }
 
@@ -27,7 +31,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct EligibleParts {
     ranges: IndexMap<char, RangeInclusive<u128>>,
 }
@@ -48,10 +52,14 @@ impl EligibleParts {
     }
 
     fn score(&self) -> u128 {
-        self.ranges.values().map(|r| r.end() - r.start() + 1).sum()
+        self.ranges
+            .values()
+            .map(|r| r.end() - r.start() + 1)
+            .product()
     }
 }
 
+#[derive(Debug)]
 struct Searcher {
     graph: RuleGraph,
     accept: Vec<EligibleParts>,
@@ -59,7 +67,7 @@ struct Searcher {
 
 impl Searcher {
     fn score(&self) -> u128 {
-        self.accept.iter().map(|ep| ep.score()).product()
+        self.accept.iter().map(|ep| ep.score()).sum()
     }
 
     fn search(graph: &RuleGraph) -> Self {
@@ -92,7 +100,7 @@ impl Searcher {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 struct RuleGraph {
     rules: IndexMap<String, Vec<Rule>>,
 }
@@ -108,7 +116,7 @@ impl Part {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Rule {
     Condition {
         rating: char,
@@ -119,7 +127,7 @@ enum Rule {
     Uncondition(String),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum RuleCond {
     Less,
     Greater,
