@@ -16,7 +16,7 @@ fn main() -> anyhow::Result<()> {
             Part::Two => (4, 10),
         };
         let goal = Position {row: heat_loss_map.height() as isize - 1, col: heat_loss_map.width() as isize - 1 };
-        let result = heuristic_search(CrucibleStatus::default(), |c| c.p == goal && c.streak >= streak_min, |c| c.p.manhattan_distance(goal) as u64, |c, cost, p| {
+        let result = heuristic_search(CrucibleStatus::default(), |c| c.p == goal && c.streak >= streak_min, |c| c.p.manhattan_distance(goal) as u64, |c, p| {
             let mut result = vec![];
             let path_back = p.path_back_from(c);
             for dir in [c.incoming, c.incoming.clockwise(), c.incoming.counterclockwise()] {
