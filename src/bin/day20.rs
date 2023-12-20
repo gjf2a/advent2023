@@ -20,7 +20,6 @@ fn main() -> anyhow::Result<()> {
 #[derive(Debug)]
 struct Circuit {
     connections: IndexMap<String,(Module,Vec<String>)>,
-    outputs: Vec<String>,
     pulse_count: HashHistogram<Pulse>
 }
 
@@ -37,6 +36,9 @@ impl Circuit {
         }
         while let Some((module_name, source, input)) = pending.pop_front() {
             //println!("{module_name} gets {input:?} from {source}");
+            if module_name == "rx" {
+                println!("rx receives {input:?} from {source}");
+            }
             self.pulse_count.bump(&input);
             let (module, outputs) = self.connections.get_mut(module_name.as_str()).unwrap();
             if let Some(output_pulse) = module.apply_input(source.as_str(), input) {
@@ -77,7 +79,7 @@ impl Circuit {
                 _ => {}
             }
         }
-        Ok(Self {connections, outputs, pulse_count: HashHistogram::default()})
+        Ok(Self {connections, pulse_count: HashHistogram::default()})
     }
 }
 
