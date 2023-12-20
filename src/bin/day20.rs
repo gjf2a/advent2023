@@ -19,11 +19,11 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 circuit.push_button();
                 println!("After one push:\n{}", circuit.stats);
-                let pushes = 800000;
+                let pushes = 1000000;
                 for _ in 1..pushes {
                     circuit.push_button();
                 }
-                println!("After {pushes} pushes:\n{}", circuit.stats);
+                //println!("After {pushes} pushes:\n{}", circuit.stats);
             }
         }
         Ok(())
@@ -65,6 +65,13 @@ impl Circuit {
                 }
                 for output in outputs.iter() {
                     pending.push_back((output.clone(), module_name.clone(), output_pulse, level + 1));
+                }
+            }
+        }
+        for module in ["dh", "db", "lm", "sg"] {
+            if let Some((pulse,i)) = self.most_recent_outgoing_pulse.get(module) {
+                if *pulse == Pulse::High {
+                    println!("High pulse for {module} at {i}");
                 }
             }
         }
