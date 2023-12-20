@@ -19,10 +19,11 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 circuit.push_button();
                 println!("After one push:\n{}", circuit.stats);
-                for _ in 1..10000 {
+                let pushes = 800000;
+                for _ in 1..pushes {
                     circuit.push_button();
                 }
-                println!("After 10000 pushes:\n{}", circuit.stats);
+                println!("After {pushes} pushes:\n{}", circuit.stats);
             }
         }
         Ok(())
@@ -33,7 +34,10 @@ fn main() -> anyhow::Result<()> {
 struct Circuit {
     connections: IndexMap<String,(Module,Vec<String>)>,
     pulse_count: HashHistogram<Pulse>,
-    stats: LevelStats
+    stats: LevelStats,
+    num_button_pushes: u128,
+    most_recent_incoming_pulse: IndexMap<String,(Pulse,u128)>,
+    most_recent_outgoing_pulse: IndexMap<String,(Pulse,u128)>,
 }
 
 impl Circuit {
@@ -42,17 +46,23 @@ impl Circuit {
     }
 
     fn push_button(&mut self) {
+        self.num_button_pushes += 1;
         let mut pending = VecDeque::new();
         self.pulse_count.bump(&Pulse::Low);
-        self.stats.add("broadcaster", 0);
+        self.stats.add("broadcaster", 0, None);
         for starter in self.connections.get("broadcaster").unwrap().1.iter() {
             pending.push_back((starter.clone(), "broadcaster".to_string(), Pulse::Low, 1));
         }
         while let Some((module_name, source, input, level)) = pending.pop_front() {
-            self.stats.add(module_name.as_str(), level);
+            self.stats.add(module_name.as_str(), level, Some(source.clone()));
+            self.most_recent_incoming_pulse.insert(module_name.clone(), (input, self.num_button_pushes));
             self.pulse_count.bump(&input);
             let (module, outputs) = self.connections.get_mut(module_name.as_str()).unwrap();
             if let Some(output_pulse) = module.apply_input(source.as_str(), input) {
+                self.most_recent_outgoing_pulse.insert(module_name.clone(), (output_pulse, self.num_button_pushes));
+                if module_name == "rx" && output_pulse == Pulse::Low {
+                    println!("rx low at level {level}");
+                }
                 for output in outputs.iter() {
                     pending.push_back((output.clone(), module_name.clone(), output_pulse, level + 1));
                 }
@@ -90,7 +100,7 @@ impl Circuit {
                 _ => {}
             }
         }
-        Ok(Self {connections, pulse_count: HashHistogram::default(), stats: LevelStats::default()})
+        Ok(Self {connections, pulse_count: HashHistogram::default(), stats: LevelStats::default(), num_button_pushes: 0, most_recent_incoming_pulse: IndexMap::new(), most_recent_outgoing_pulse: IndexMap::new()})
     }
 }
 
@@ -98,12 +108,20 @@ impl Circuit {
 struct LevelStats {
     at_level: Vec<IndexSet<String>>,
     levels_for: IndexMap<String,IndexSet<usize>>,
+    ancestors: IndexMap<(String,usize),IndexSet<(String,usize)>>,
 }
 
 impl LevelStats {
-    fn add(&mut self, module_name: &str, level: usize) {
+    fn add(&mut self, module_name: &str, level: usize, parent: Option<String>) {
         if self.at_level.len() == 0 || level > self.highest_level() {
             self.at_level.push(IndexSet::new());
+        }
+        if let Some(parent) = parent {
+            let key = (module_name.to_owned(), level);
+            if !self.ancestors.contains_key(&key) {
+                self.ancestors.insert(key.clone(), IndexSet::new());
+            }
+            self.ancestors.get_mut(&key).unwrap().insert((parent.clone(), level - 1));
         }
         self.at_level[level].insert(module_name.to_owned());
         if !self.levels_for.contains_key(module_name) {
