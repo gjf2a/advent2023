@@ -1,18 +1,30 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Display};
 
-use advent_code_lib::{chooser_main, all_lines};
+use advent_code_lib::{chooser_main, all_lines, Part};
 use enum_iterator::{Sequence, all};
 use hash_histogram::HashHistogram;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut circuit = Circuit::from(filename)?;
-        for _ in 0..1000 {
-            circuit.push_button();
+        match part {
+            Part::One => {
+                for _ in 0..1000 {
+                    circuit.push_button();
+                }
+                println!("{circuit:?}");
+                println!("Part {part:?}: {}", circuit.score());
+            }
+            Part::Two => {
+                circuit.push_button();
+                println!("After one push:\n{}", circuit.stats);
+                for _ in 1..10000 {
+                    circuit.push_button();
+                }
+                println!("After 10000 pushes:\n{}", circuit.stats);
+            }
         }
-        println!("{circuit:?}");
-        println!("Part {part:?}: {}", circuit.score());
         Ok(())
     })
 }
@@ -20,7 +32,8 @@ fn main() -> anyhow::Result<()> {
 #[derive(Debug)]
 struct Circuit {
     connections: IndexMap<String,(Module,Vec<String>)>,
-    pulse_count: HashHistogram<Pulse>
+    pulse_count: HashHistogram<Pulse>,
+    stats: LevelStats
 }
 
 impl Circuit {
@@ -31,19 +44,17 @@ impl Circuit {
     fn push_button(&mut self) {
         let mut pending = VecDeque::new();
         self.pulse_count.bump(&Pulse::Low);
+        self.stats.add("broadcaster", 0);
         for starter in self.connections.get("broadcaster").unwrap().1.iter() {
-            pending.push_back((starter.clone(), "broadcaster".to_string(), Pulse::Low));
+            pending.push_back((starter.clone(), "broadcaster".to_string(), Pulse::Low, 1));
         }
-        while let Some((module_name, source, input)) = pending.pop_front() {
-            //println!("{module_name} gets {input:?} from {source}");
-            if module_name == "rx" {
-                println!("rx receives {input:?} from {source}");
-            }
+        while let Some((module_name, source, input, level)) = pending.pop_front() {
+            self.stats.add(module_name.as_str(), level);
             self.pulse_count.bump(&input);
             let (module, outputs) = self.connections.get_mut(module_name.as_str()).unwrap();
             if let Some(output_pulse) = module.apply_input(source.as_str(), input) {
                 for output in outputs.iter() {
-                    pending.push_back((output.clone(), module_name.clone(), output_pulse));
+                    pending.push_back((output.clone(), module_name.clone(), output_pulse, level + 1));
                 }
             }
         }
@@ -79,7 +90,42 @@ impl Circuit {
                 _ => {}
             }
         }
-        Ok(Self {connections, pulse_count: HashHistogram::default()})
+        Ok(Self {connections, pulse_count: HashHistogram::default(), stats: LevelStats::default()})
+    }
+}
+
+#[derive(Default, Debug)]
+struct LevelStats {
+    at_level: Vec<IndexSet<String>>,
+    levels_for: IndexMap<String,IndexSet<usize>>,
+}
+
+impl LevelStats {
+    fn add(&mut self, module_name: &str, level: usize) {
+        if self.at_level.len() == 0 || level > self.highest_level() {
+            self.at_level.push(IndexSet::new());
+        }
+        self.at_level[level].insert(module_name.to_owned());
+        if !self.levels_for.contains_key(module_name) {
+            self.levels_for.insert(module_name.to_owned(), IndexSet::new());
+        }
+        self.levels_for.get_mut(module_name).unwrap().insert(level);
+    }
+
+    fn highest_level(&self) -> usize {
+        self.at_level.len() - 1
+    }
+}
+
+impl Display for LevelStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for level in 0..self.at_level.len() {
+            writeln!(f, "{level}: {:?}", self.at_level[level])?;
+        }
+        for (key, levels) in self.levels_for.iter() {
+            writeln!(f, "{key}: {levels:?}")?;
+        }
+        Ok(())
     }
 }
 
