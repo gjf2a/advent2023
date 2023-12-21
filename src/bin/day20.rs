@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 /*
 Patterns:
 * (zeros to first one, length)
-* 0: broadcast 
+* 0: broadcast
 * all 0 con: dh, db, sg, lm
 * all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh, gr
 * all 1: qq, bx, bc, gj (level 2 con), jm (level 4 con)
@@ -37,7 +37,7 @@ Patterns:
 * 2. Adjust offsets for its outputs.
 * 3. See which of the four gets solved next.
 * 4. Adjust offsets for its outputs.
-* 5. Keep going until they all reach zero at the same time. 
+* 5. Keep going until they all reach zero at the same time.
 
 * Conjunction inputs:
 * qq: gv, pl, lz, rh, xf, hn, qj
@@ -72,9 +72,25 @@ fn main() -> anyhow::Result<()> {
                     circuit.push_button();
                 }
                 circuit.print_outcomes();
-                let ff = circuit.connections.iter().filter(|(_,(m,_))| match m {Module::FlipFlop(_) => true, _ => false}).map(|(n,_)| n).collect::<Vec<_>>();
+                let ff = circuit
+                    .connections
+                    .iter()
+                    .filter(|(_, (m, _))| match m {
+                        Module::FlipFlop(_) => true,
+                        _ => false,
+                    })
+                    .map(|(n, _)| n)
+                    .collect::<Vec<_>>();
                 println!("flip-flops: {ff:?}");
-                let con = circuit.connections.iter().filter(|(_,(m,_))| match m {Module::Conjunction(_) => true, _ => false}).map(|(n,_)| n).collect::<Vec<_>>();
+                let con = circuit
+                    .connections
+                    .iter()
+                    .filter(|(_, (m, _))| match m {
+                        Module::Conjunction(_) => true,
+                        _ => false,
+                    })
+                    .map(|(n, _)| n)
+                    .collect::<Vec<_>>();
                 println!("conjuncts:  {con:?}");
                 //println!("After {pushes} pushes:\n{}", circuit.stats);
             }
@@ -133,13 +149,21 @@ impl Circuit {
             }
         }
         for (name, outcomes) in self.pulses_at_end.iter_mut() {
-            outcomes.push(self.most_recent_outgoing_pulse.get(name.as_str()).map(|(p,_)| *p).unwrap_or(Pulse::Low));
+            outcomes.push(
+                self.most_recent_outgoing_pulse
+                    .get(name.as_str())
+                    .map(|(p, _)| *p)
+                    .unwrap_or(Pulse::Low),
+            );
         }
     }
 
     fn print_outcomes(&self) {
         for (name, outcomes) in self.pulses_at_end.iter() {
-            println!("{name} {}", outcomes.iter().map(|p| p.digit()).collect::<String>());
+            println!(
+                "{name} {}",
+                outcomes.iter().map(|p| p.digit()).collect::<String>()
+            );
         }
     }
 
