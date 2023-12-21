@@ -65,9 +65,9 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {}", circuit.score());
             }
             Part::Two => {
+                let pushes = options[0].parse::<usize>().unwrap();
                 circuit.push_button();
                 println!("After one push:\n{}", circuit.stats);
-                let pushes = 100;
                 for _ in 1..pushes {
                     circuit.push_button();
                 }
