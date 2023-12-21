@@ -10,7 +10,7 @@ Patterns:
 * (zeros to first one, length)
 * 0: broadcast 
 * all 0 con: dh, db, sg, lm
-* all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh
+* all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh, gr
 * all 1: qq, bx, bc, gj (level 2 con), jm (level 4 con)
 * (0, 1): pl, xr, mn, xc (level 1 ff)
 * (1, 2): pm, rh, sc, hv (level 2 ff)
@@ -19,6 +19,38 @@ Patterns:
 * (15, 16): cv, tr, zh, ll
 * (31, 32): sz, vq, zx, st
 * (63, 64): bt, ld, ms, mm
+* Inferences:
+* (127, 128): gr, cl, xh, gz
+* (255, 256): hn, jf, vt, nf
+* (511, 512): gv, qc, lr, tg
+* (1023, 1024): xf, sf, fr, dx
+* (2047, 2048): qj, pz, tb, hk
+
+* Conjunction flip-flop outputs:
+* qq: gr, cv, vq, lp, pl, bt
+* bx: ll, xc
+* gj: ks, ld, xr
+* bc: mn, zl, xb, mm, hv, gz
+
+* Need to solve for when qq, bx, gj, and bc simultaneously output zero.
+* 1. Figure out which of them reaches zero first.
+* 2. Adjust offsets for its outputs.
+* 3. See which of the four gets solved next.
+* 4. Adjust offsets for its outputs.
+* 5. Keep going until they all reach zero at the same time. 
+
+* Conjunction inputs:
+* qq: gv, pl, lz, rh, xf, hn, qj
+* bx: lr, zx, dg, nq, ms, xh, fr, vt, tb, xc, pm
+* gj: qc, sf, nd, sc, gc, xr, pz, cl, tr, sz, jf
+* bc: tg, zh, hk, st, nf, mn, dx
+*
+* dh: bc
+* db: bx
+* sg: gj
+* lm: qq
+*
+* jm: sg, lm, dh, db
  */
 
 fn main() -> anyhow::Result<()> {
