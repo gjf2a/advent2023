@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
             }
             Part::Two => {
                 let mut table = InfiniteTable::new(start);
-                for _ in 0..6 {
+                for _ in 0..10 {
                     table.expand_once(&garden);
                 }
                 println!("Part {part:?}: {}", table.score());
@@ -89,10 +89,12 @@ impl InfiniteTable {
         let mut new_level = IndexMap::new();
         for (mut candidate, count) in candidates {
             wrap_in_bounds(&mut candidate, garden);
-            match new_level.get_mut(&candidate) {
-                None => {new_level.insert(candidate, *count);}
-                Some(new_count) => {
-                    *new_count += *count;
+            if garden.value(candidate).unwrap() != '#' {
+                match new_level.get_mut(&candidate) {
+                    None => {new_level.insert(candidate, *count);}
+                    Some(new_count) => {
+                        *new_count += *count;
+                    }
                 }
             }
         }
