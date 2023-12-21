@@ -3,6 +3,12 @@ use enum_iterator::all;
 use indexmap::{IndexMap, IndexSet};
 use num_integer::Integer;
 
+
+/*
+Example alternates between 39 and 42 active starting at step 13.
+Input alternates between 7255 and 7262 active starting at 129.
+ */
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
         let garden = GridCharWorld::from_char_file(filename)?;
@@ -15,18 +21,32 @@ fn main() -> anyhow::Result<()> {
         match part {
             Part::One => {
                 let mut table = ReachableTable::new(start);
-                for _ in 0..64 {
+                let iterations = if filename.contains("ex") {6} else {64};
+                for _ in 0..iterations {
                     table.expand_once(&garden);
                 }
                 println!("Part {part:?}: {}", table.last_row().len());
             }
             Part::Two => {
-                let mut table = InfiniteTable::new(start);
-                for i in 0..10 {
-                    println!("round {}", i + 1);
-                    table.expand_once(&garden);
+                if options[0] == "saturate" {
+                    let mut table = ReachableTable::new(start);
+                    let num_open = garden.position_value_iter().filter(|(_,v)| **v != '#').count();
+                    let mut count = 0;
+                    while table.last_row().len() < num_open {
+                        count += 1;
+                        table.expand_once(&garden);
+                        println!("{count}: {}/{num_open}", table.last_row().len())
+                    }
+                    println!("Table saturated after {count} iterations.");
+                } else {
+                    let iterations = options[0].parse::<usize>().unwrap();
+                    let mut table = InfiniteTable::new(start);
+                    for i in 0..iterations {
+                        println!("round {}", i + 1);
+                        table.expand_once(&garden);
+                    }
+                    println!("Part {part:?}: {}", table.score());
                 }
-                println!("Part {part:?}: {}", table.score());
             }
         }
 
