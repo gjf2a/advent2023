@@ -84,28 +84,30 @@ impl InfiniteTable {
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let mut candidates = IndexMap::new();
-        for ((p, incoming), count) in self.counts.iter() {
+        for ((p, _), count) in self.counts.iter() {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
-                candidates.insert((neighbor, Some(dir)), count);
-                print!("{neighbor}({count}) ");
+                let key = (neighbor, Some(dir));
+                match candidates.get_mut(&key) {
+                    None => {candidates.insert(key, *count);}
+                    Some(v) => *v += *count,
+                }
             }
         }
-        println!();
 
         let mut new_level = IndexMap::new();
         for ((mut candidate, incoming), count) in candidates {
             wrap_in_bounds(&mut candidate, garden);
             if garden.value(candidate).unwrap() != '#' {
                 if incoming.map_or(true, |incoming| {
-                    !new_level.contains_key(&(candidate, Some(incoming.inverse())))
+                    !garden.at_edge(candidate) || !new_level.contains_key(&(candidate, Some(incoming.inverse())))
                 }) {
                     match new_level.get_mut(&(candidate, incoming)) {
                         None => {
-                            new_level.insert((candidate, incoming), *count);
+                            new_level.insert((candidate, incoming), count);
                         }
                         Some(new_count) => {
-                            *new_count += *count;
+                            *new_count += count;
                         }
                     }
                 }
