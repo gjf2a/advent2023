@@ -87,7 +87,11 @@ impl InfiniteTable {
         for ((p, incoming), count) in self.counts.iter() {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
-                candidates.insert((neighbor, Some(dir)), count);
+                if incoming.map_or(true, |incoming| {
+                    !candidates.contains_key(&(neighbor, Some(incoming.inverse())))
+                }) {
+                    candidates.insert((neighbor, Some(dir)), count);
+                }
                 print!("{neighbor}({count}) ");
             }
         }
@@ -97,16 +101,12 @@ impl InfiniteTable {
         for ((mut candidate, incoming), count) in candidates {
             wrap_in_bounds(&mut candidate, garden);
             if garden.value(candidate).unwrap() != '#' {
-                if incoming.map_or(true, |incoming| {
-                    !new_level.contains_key(&(candidate, Some(incoming.inverse())))
-                }) {
-                    match new_level.get_mut(&(candidate, incoming)) {
-                        None => {
-                            new_level.insert((candidate, incoming), *count);
-                        }
-                        Some(new_count) => {
-                            *new_count += *count;
-                        }
+                match new_level.get_mut(&(candidate, incoming)) {
+                    None => {
+                        new_level.insert((candidate, incoming), *count);
+                    }
+                    Some(new_count) => {
+                        *new_count += *count;
                     }
                 }
             }
