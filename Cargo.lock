@@ -14,6 +14,7 @@ dependencies = [
  "hash_histogram",
  "indexmap 2.1.0",
  "map-macro",
+ "num-integer",
 ]
 
 [[package]]
