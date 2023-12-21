@@ -1,17 +1,13 @@
-use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
+use advent_code_lib::{chooser_main, GridCharWorld, Position, ManhattanDir, DirType, Part};
 use enum_iterator::all;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{IndexSet, IndexMap};
 use num_integer::Integer;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let garden = GridCharWorld::from_char_file(filename)?;
-        let start = garden
-            .position_value_iter()
-            .find(|(_, c)| **c == 'S')
-            .map(|(p, _)| *p)
-            .unwrap();
-
+        let start = garden.position_value_iter().find(|(_, c)| **c == 'S').map(|(p, _)| *p).unwrap();
+        
         match part {
             Part::One => {
                 let mut table = ReachableTable::new(start);
@@ -29,21 +25,21 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {}", table.score());
             }
         }
-
+        
         Ok(())
     })
 }
 
 #[derive(Debug)]
 struct ReachableTable {
-    reachable: Vec<IndexSet<Position>>,
+    reachable: Vec<IndexSet<Position>>
 }
 
 impl ReachableTable {
     fn new(start: Position) -> Self {
         let mut reachable = vec![IndexSet::new()];
         reachable[0].insert(start);
-        Self { reachable }
+        Self {reachable}
     }
 
     fn last_row(&self) -> &IndexSet<Position> {
@@ -68,14 +64,14 @@ impl ReachableTable {
 
 #[derive(Debug)]
 struct InfiniteTable {
-    counts: IndexMap<(Position, Option<ManhattanDir>), u128>,
+    counts: IndexMap<(Position,Option<ManhattanDir>),u128>
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
         let mut counts = IndexMap::new();
         counts.insert((start, None), 1);
-        Self { counts }
+        Self {counts}
     }
 
     fn score(&self) -> u128 {
@@ -87,11 +83,7 @@ impl InfiniteTable {
         for ((p, incoming), count) in self.counts.iter() {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
-                if incoming.map_or(true, |incoming| {
-                    !candidates.contains_key(&(neighbor, Some(incoming.inverse())))
-                }) {
-                    candidates.insert((neighbor, Some(dir)), count);
-                }
+                candidates.insert((neighbor, Some(dir)), count);
                 print!("{neighbor}({count}) ");
             }
         }
@@ -101,18 +93,19 @@ impl InfiniteTable {
         for ((mut candidate, incoming), count) in candidates {
             wrap_in_bounds(&mut candidate, garden);
             if garden.value(candidate).unwrap() != '#' {
+                if incoming.map_or(true, |incoming| !new_level.contains_key(&(candidate, Some(incoming.inverse())))) {
                 match new_level.get_mut(&(candidate, incoming)) {
-                    None => {
-                        new_level.insert((candidate, incoming), *count);
-                    }
+                    None => {new_level.insert((candidate, incoming), *count);}
                     Some(new_count) => {
-                        *new_count += *count;
+                        
+                            *new_count += *count;
+                        }
                     }
                 }
             }
         }
         std::mem::swap(&mut self.counts, &mut new_level);
-    }
+    }    
 }
 
 fn wrap_in_bounds(p: &mut Position, garden: &GridCharWorld) {
