@@ -5,6 +5,22 @@ use enum_iterator::{all, Sequence};
 use hash_histogram::HashHistogram;
 use indexmap::{IndexMap, IndexSet};
 
+/*
+Patterns:
+* (zeros to first one, length)
+* 0: broadcast 
+* all 0 con: dh, db, sg, lm
+* all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh
+* all 1: qq, bx, bc, gj (level 2 con), jm (level 4 con)
+* (0, 1): pl, xr, mn, xc (level 1 ff)
+* (1, 2): pm, rh, sc, hv (level 2 ff)
+* (3, 4): nq, lp, xb, ks
+* (7, 8): nd, zl, dg, lz
+* (15, 16): cv, tr, zh, ll
+* (31, 32): sz, vq, zx, st
+* (63, 64): bt, ld, ms, mm
+ */
+
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part| {
         let mut circuit = Circuit::from(filename)?;
@@ -24,6 +40,10 @@ fn main() -> anyhow::Result<()> {
                     circuit.push_button();
                 }
                 circuit.print_outcomes();
+                let ff = circuit.connections.iter().filter(|(_,(m,_))| match m {Module::FlipFlop(_) => true, _ => false}).map(|(n,_)| n).collect::<Vec<_>>();
+                println!("flip-flops: {ff:?}");
+                let con = circuit.connections.iter().filter(|(_,(m,_))| match m {Module::Conjunction(_) => true, _ => false}).map(|(n,_)| n).collect::<Vec<_>>();
+                println!("conjuncts:  {con:?}");
                 //println!("After {pushes} pushes:\n{}", circuit.stats);
             }
         }

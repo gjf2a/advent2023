@@ -18,7 +18,8 @@ fn main() -> anyhow::Result<()> {
             }
             Part::Two => {
                 let mut table = InfiniteTable::new(start);
-                for _ in 0..10 {
+                for i in 0..10 {
+                    println!("round {}", i + 1);
                     table.expand_once(&garden);
                 }
                 println!("Part {part:?}: {}", table.score());
@@ -83,8 +84,10 @@ impl InfiniteTable {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
                 candidates.insert(neighbor, count);
+                print!("{neighbor}({count}) ");
             }
         }
+        println!();
 
         let mut new_level = IndexMap::new();
         for (mut candidate, count) in candidates {
