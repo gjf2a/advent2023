@@ -32,12 +32,16 @@ fn main() -> anyhow::Result<()> {
                     let mut table = ReachableTable::new(start);
                     let num_open = garden.position_value_iter().filter(|(_,v)| **v != '#').count();
                     let mut count = 0;
-                    while table.last_row().len() < num_open {
+                    let mut prev_open = 0;
+                    let mut prev_sum = 0;
+                    while prev_sum < prev_open + table.last_row().len() {
+                        prev_sum = prev_open + table.last_row().len();
+                        prev_open = table.last_row().len();
                         count += 1;
                         table.expand_once(&garden);
-                        println!("{count}: {}/{num_open}", table.last_row().len())
                     }
-                    println!("Table saturated after {count} iterations.");
+                    println!("After {count} iterations, we alternate between {prev_open} and {}", table.last_row().len());
+                    println!("Total open squares: {num_open}; sum of alternation: {}", prev_open + table.last_row().len());
                 } else {
                     let iterations = options[0].parse::<usize>().unwrap();
                     let mut table = InfiniteTable::new(start);
