@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, fmt::Display};
 
-use advent_code_lib::{chooser_main, all_lines, Part};
-use enum_iterator::{Sequence, all};
+use advent_code_lib::{all_lines, chooser_main, Part};
+use enum_iterator::{all, Sequence};
 use hash_histogram::HashHistogram;
 use indexmap::{IndexMap, IndexSet};
 
@@ -19,10 +19,11 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 circuit.push_button();
                 println!("After one push:\n{}", circuit.stats);
-                let pushes = 1000000;
+                let pushes = 100;
                 for _ in 1..pushes {
                     circuit.push_button();
                 }
+                circuit.print_outcomes();
                 //println!("After {pushes} pushes:\n{}", circuit.stats);
             }
         }
@@ -32,17 +33,20 @@ fn main() -> anyhow::Result<()> {
 
 #[derive(Debug)]
 struct Circuit {
-    connections: IndexMap<String,(Module,Vec<String>)>,
+    connections: IndexMap<String, (Module, Vec<String>)>,
     pulse_count: HashHistogram<Pulse>,
     stats: LevelStats,
     num_button_pushes: u128,
-    most_recent_incoming_pulse: IndexMap<String,(Pulse,u128)>,
-    most_recent_outgoing_pulse: IndexMap<String,(Pulse,u128)>,
+    most_recent_incoming_pulse: IndexMap<String, (Pulse, u128)>,
+    most_recent_outgoing_pulse: IndexMap<String, (Pulse, u128)>,
+    pulses_at_end: IndexMap<String, Vec<Pulse>>,
 }
 
 impl Circuit {
     fn score(&self) -> u64 {
-        all::<Pulse>().map(|p| self.pulse_count.count(&p) as u64).product()
+        all::<Pulse>()
+            .map(|p| self.pulse_count.count(&p) as u64)
+            .product()
     }
 
     fn push_button(&mut self) {
@@ -54,48 +58,71 @@ impl Circuit {
             pending.push_back((starter.clone(), "broadcaster".to_string(), Pulse::Low, 1));
         }
         while let Some((module_name, source, input, level)) = pending.pop_front() {
-            self.stats.add(module_name.as_str(), level, Some(source.clone()));
-            self.most_recent_incoming_pulse.insert(module_name.clone(), (input, self.num_button_pushes));
+            self.stats
+                .add(module_name.as_str(), level, Some(source.clone()));
+            self.most_recent_incoming_pulse
+                .insert(module_name.clone(), (input, self.num_button_pushes));
             self.pulse_count.bump(&input);
             let (module, outputs) = self.connections.get_mut(module_name.as_str()).unwrap();
             if let Some(output_pulse) = module.apply_input(source.as_str(), input) {
-                self.most_recent_outgoing_pulse.insert(module_name.clone(), (output_pulse, self.num_button_pushes));
+                self.most_recent_outgoing_pulse
+                    .insert(module_name.clone(), (output_pulse, self.num_button_pushes));
                 if module_name == "rx" && output_pulse == Pulse::Low {
                     println!("rx low at level {level}");
                 }
                 for output in outputs.iter() {
-                    pending.push_back((output.clone(), module_name.clone(), output_pulse, level + 1));
+                    pending.push_back((
+                        output.clone(),
+                        module_name.clone(),
+                        output_pulse,
+                        level + 1,
+                    ));
                 }
             }
         }
-        for module in ["dh", "db", "lm", "sg"] {
-            if let Some((pulse,i)) = self.most_recent_outgoing_pulse.get(module) {
-                if *pulse == Pulse::High {
-                    println!("High pulse for {module} at {i}");
-                }
-            }
+        for (name, outcomes) in self.pulses_at_end.iter_mut() {
+            outcomes.push(self.most_recent_outgoing_pulse.get(name.as_str()).map(|(p,_)| *p).unwrap_or(Pulse::Low));
+        }
+    }
+
+    fn print_outcomes(&self) {
+        for (name, outcomes) in self.pulses_at_end.iter() {
+            println!("{name} {}", outcomes.iter().map(|p| p.digit()).collect::<String>());
         }
     }
 
     fn from(filename: &str) -> anyhow::Result<Self> {
         let mut connections = IndexMap::new();
+        let mut pulses_at_end = IndexMap::new();
         let mut incoming_names = IndexMap::new();
         for line in all_lines(filename)? {
             let mut top = line.split(" -> ");
             let (module, module_name) = Module::module_name(top.next().unwrap());
             let destinations = top.next().unwrap();
-            let edges: Vec<String> = destinations.split(",").map(|s| s.trim().to_owned()).collect();
+            let edges: Vec<String> = destinations
+                .split(",")
+                .map(|s| s.trim().to_owned())
+                .collect();
             for edge in edges.iter() {
                 if !incoming_names.contains_key(edge.as_str()) {
                     incoming_names.insert(edge.clone(), vec![]);
                 }
-                incoming_names.get_mut(edge.as_str()).unwrap().push(module_name.clone());
+                incoming_names
+                    .get_mut(edge.as_str())
+                    .unwrap()
+                    .push(module_name.clone());
             }
+            pulses_at_end.insert(module_name.clone(), vec![]);
             connections.insert(module_name, (module, edges));
         }
-        let outputs: Vec<String> = incoming_names.keys().filter(|s| !connections.contains_key(s.as_str())).map(|s| s.to_string()).collect();
+        let outputs: Vec<String> = incoming_names
+            .keys()
+            .filter(|s| !connections.contains_key(s.as_str()))
+            .map(|s| s.to_string())
+            .collect();
         for output in outputs.iter() {
             connections.insert(output.clone(), (Module::Output, vec![]));
+            pulses_at_end.insert(output.clone(), vec![]);
         }
         for (name, (m, _)) in connections.iter_mut() {
             match m {
@@ -107,15 +134,23 @@ impl Circuit {
                 _ => {}
             }
         }
-        Ok(Self {connections, pulse_count: HashHistogram::default(), stats: LevelStats::default(), num_button_pushes: 0, most_recent_incoming_pulse: IndexMap::new(), most_recent_outgoing_pulse: IndexMap::new()})
+        Ok(Self {
+            connections,
+            pulse_count: HashHistogram::default(),
+            stats: LevelStats::default(),
+            num_button_pushes: 0,
+            most_recent_incoming_pulse: IndexMap::new(),
+            most_recent_outgoing_pulse: IndexMap::new(),
+            pulses_at_end,
+        })
     }
 }
 
 #[derive(Default, Debug)]
 struct LevelStats {
     at_level: Vec<IndexSet<String>>,
-    levels_for: IndexMap<String,IndexSet<usize>>,
-    ancestors: IndexMap<(String,usize),IndexSet<(String,usize)>>,
+    levels_for: IndexMap<String, IndexSet<usize>>,
+    ancestors: IndexMap<(String, usize), IndexSet<(String, usize)>>,
 }
 
 impl LevelStats {
@@ -128,11 +163,15 @@ impl LevelStats {
             if !self.ancestors.contains_key(&key) {
                 self.ancestors.insert(key.clone(), IndexSet::new());
             }
-            self.ancestors.get_mut(&key).unwrap().insert((parent.clone(), level - 1));
+            self.ancestors
+                .get_mut(&key)
+                .unwrap()
+                .insert((parent.clone(), level - 1));
         }
         self.at_level[level].insert(module_name.to_owned());
         if !self.levels_for.contains_key(module_name) {
-            self.levels_for.insert(module_name.to_owned(), IndexSet::new());
+            self.levels_for
+                .insert(module_name.to_owned(), IndexSet::new());
         }
         self.levels_for.get_mut(module_name).unwrap().insert(level);
     }
@@ -157,7 +196,7 @@ impl Display for LevelStats {
 #[derive(Debug)]
 enum Module {
     Broadcaster,
-    Conjunction(IndexMap<String,Pulse>),
+    Conjunction(IndexMap<String, Pulse>),
     FlipFlop(FlipFlopState),
     Output,
 }
@@ -175,18 +214,16 @@ impl Module {
                     Some(Pulse::High)
                 }
             }
-            Self::FlipFlop(state) => {
-                match input {
-                    Pulse::Low => {
-                        state.flip();
-                        match state {
-                            FlipFlopState::On => Some(Pulse::High),
-                            FlipFlopState::Off => Some(Pulse::Low),
-                        }
+            Self::FlipFlop(state) => match input {
+                Pulse::Low => {
+                    state.flip();
+                    match state {
+                        FlipFlopState::On => Some(Pulse::High),
+                        FlipFlopState::Off => Some(Pulse::Low),
                     }
-                    Pulse::High => None
                 }
-            }  
+                Pulse::High => None,
+            },
         }
     }
 
@@ -204,12 +241,22 @@ impl Module {
 enum Pulse {
     #[default]
     Low,
-    High
+    High,
+}
+
+impl Pulse {
+    fn digit(&self) -> char {
+        match self {
+            Self::Low => '0',
+            Self::High => '1',
+        }
+    }
 }
 
 #[derive(Debug)]
 enum FlipFlopState {
-    Off, On
+    Off,
+    On,
 }
 
 impl FlipFlopState {

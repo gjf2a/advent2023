@@ -1,4 +1,4 @@
-use std::{collections::BinaryHeap, cmp::Reverse};
+use std::{cmp::Reverse, collections::BinaryHeap};
 
 use advent_code_lib::{
     chooser_main, heuristic_search, DirType, GridCharWorld, GridDigitWorld, ManhattanDir, Part,
@@ -23,7 +23,10 @@ fn main() -> anyhow::Result<()> {
             row: heat_loss_map.height() as isize - 1,
             col: heat_loss_map.width() as isize - 1,
         };
-        let preloaded = heat_loss_map.position_iter().map(|p| (p, heuristic(&heat_loss_map, goal, p))).collect::<IndexMap<_,_>>();
+        let preloaded = heat_loss_map
+            .position_iter()
+            .map(|p| (p, heuristic(&heat_loss_map, goal, p)))
+            .collect::<IndexMap<_, _>>();
         let result = heuristic_search(
             CrucibleStatus::default(),
             |c| c.p == goal && c.streak >= streak_min,
@@ -92,7 +95,7 @@ fn heuristic(heat_loss_map: &GridDigitWorld, goal: Position, location: Position)
     let mut losses = BinaryHeap::new();
     for row in location.row..heat_loss_map.height() as isize {
         for col in location.col..heat_loss_map.width() as isize {
-            let p = Position {row, col};
+            let p = Position { row, col };
             if p != location {
                 losses.push(Reverse(heat_loss_map.value(p).unwrap()));
             }
