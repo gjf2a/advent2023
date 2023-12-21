@@ -5,7 +5,7 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 const COLORS: [&'static str; 3] = ["red", "green", "blue"];
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         match part {
             Part::One => {
                 let part1constraint = "12 red, 13 green, 14 blue".parse::<BagOfCubes>()?;

@@ -5,7 +5,7 @@ use enum_iterator::all;
 use indexmap::{IndexMap, IndexSet};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let pipes = PipeMaze::from_file(filename)?;
         match part {
             Part::One => {

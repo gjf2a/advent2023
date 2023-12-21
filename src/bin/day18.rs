@@ -6,7 +6,7 @@ use enum_iterator::all;
 use indexmap::{IndexMap, IndexSet};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         match part {
             Part::One => {
                 let outline = TrenchOutline::new(filename)?;

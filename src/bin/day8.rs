@@ -3,7 +3,7 @@ use bare_metal_modulo::{MNum, ModNum};
 use indexmap::IndexMap;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let mut lines = all_lines(filename)?;
         let instructions = instructions(lines.next().unwrap());
         let map = graph(lines.skip(1));

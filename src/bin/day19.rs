@@ -4,7 +4,7 @@ use advent_code_lib::{all_lines, chooser_main};
 use indexmap::IndexMap;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, problem| {
+    chooser_main(|filename, problem, _| {
         let (graph, parts) = input(filename)?;
         println!("{graph}");
         for part in parts.iter() {

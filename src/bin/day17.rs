@@ -5,7 +5,7 @@ use advent_code_lib::{
 use bare_metal_modulo::MNum;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
         println!(
             "height: {} width: {}",

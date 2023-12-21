@@ -3,7 +3,7 @@ use enum_iterator::{all, All};
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let mirrors = GridCharWorld::from_char_file(filename)?;
         let num_activated = match part {
             Part::One => activate_tiles(&mirrors, LightBeam::default()).len(),

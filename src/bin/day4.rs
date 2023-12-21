@@ -4,7 +4,7 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let lines: Vec<ScratchCard> = all_lines(filename)?
             .map(|line| line.parse::<ScratchCard>().unwrap())
             .collect();

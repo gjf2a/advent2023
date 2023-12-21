@@ -5,7 +5,7 @@ use enum_iterator::{all, Sequence};
 use hash_histogram::HashHistogram;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let mut hands_with_bids = hands_with_bids(filename)?;
         if part == Part::Two {
             for (hand, _) in hands_with_bids.iter_mut() {

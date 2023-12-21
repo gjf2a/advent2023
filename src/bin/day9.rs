@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use advent_code_lib::{all_lines, chooser_main, Part};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let num_nums = num_nums(filename)?;
 
         match part {

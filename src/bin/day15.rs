@@ -5,7 +5,7 @@ use gapbuf::GapBuffer;
 const PERIOD: usize = 256;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let line = all_lines(filename)?.next().unwrap();
         let value = match part {
             Part::One => initialization_hash_sum(line.as_str()),

@@ -6,7 +6,7 @@ use advent_code_lib::{
 use enum_iterator::{all, Sequence};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let blocks = blocks_from(filename)?;
         let reflection_lines = lines_for(&blocks);
         assert_eq!(blocks.len(), reflection_lines.len());

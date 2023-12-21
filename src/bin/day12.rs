@@ -3,7 +3,7 @@ use std::{collections::VecDeque, fmt::Display, str::FromStr};
 use advent_code_lib::{all_lines, chooser_main, Part};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let mut lines = all_lines(filename)?
             .map(|line| line.parse::<SpringProspect>().unwrap())
             .collect::<Vec<_>>();

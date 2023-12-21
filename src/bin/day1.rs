@@ -2,7 +2,7 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 use map_macro::hash_map;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         match part {
             Part::One => {
                 let part1 = all_lines(filename)?

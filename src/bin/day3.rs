@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use advent_code_lib::{chooser_main, GridCharWorld, Part, Position};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let grid = GridCharWorld::from_char_file(filename)?;
         match part {
             Part::One => {

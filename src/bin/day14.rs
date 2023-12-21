@@ -5,7 +5,7 @@ use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, 
 const TOTAL_CYCLES: usize = 1000000000;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let mut rocks = GridCharWorld::from_char_file(filename)?;
         match part {
             Part::One => {

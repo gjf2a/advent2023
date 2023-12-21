@@ -7,7 +7,7 @@ use advent_code_lib::{all_lines, chooser_main, Part};
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         match part {
             Part::One => {
                 let mut lines = all_lines(filename)?;

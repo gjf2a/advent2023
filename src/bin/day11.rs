@@ -1,7 +1,7 @@
 use advent_code_lib::{chooser_main, GridCharWorld, Part, Position};
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let expansion_factor = match part {
             Part::One => 1,
             Part::Two => 999_999,

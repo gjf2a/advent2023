@@ -54,7 +54,7 @@ Patterns:
  */
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, options| {
         let mut circuit = Circuit::from(filename)?;
         match part {
             Part::One => {

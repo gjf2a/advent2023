@@ -4,7 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use num_integer::Integer;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, options| {
         let garden = GridCharWorld::from_char_file(filename)?;
         let start = garden
             .position_value_iter()

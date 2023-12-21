@@ -8,7 +8,7 @@ use bare_metal_modulo::MNum;
 use indexmap::IndexMap;
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part| {
+    chooser_main(|filename, part, _| {
         let heat_loss_map = GridDigitWorld::from_digit_file(filename)?;
         println!(
             "height: {} width: {}",
