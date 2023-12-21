@@ -64,13 +64,13 @@ impl ReachableTable {
 
 #[derive(Debug)]
 struct InfiniteTable {
-    counts: IndexMap<Position,u128>
+    counts: IndexMap<(Position,Option<ManhattanDir>),u128>
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
         let mut counts = IndexMap::new();
-        counts.insert(start, 1);
+        counts.insert((start, None), 1);
         Self {counts}
     }
 
@@ -80,23 +80,26 @@ impl InfiniteTable {
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let mut candidates = IndexMap::new();
-        for (p, count) in self.counts.iter() {
+        for ((p, incoming), count) in self.counts.iter() {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
-                candidates.insert(neighbor, count);
+                candidates.insert((neighbor, Some(dir)), count);
                 print!("{neighbor}({count}) ");
             }
         }
         println!();
 
         let mut new_level = IndexMap::new();
-        for (mut candidate, count) in candidates {
+        for ((mut candidate, incoming), count) in candidates {
             wrap_in_bounds(&mut candidate, garden);
             if garden.value(candidate).unwrap() != '#' {
-                match new_level.get_mut(&candidate) {
-                    None => {new_level.insert(candidate, *count);}
+                if incoming.map_or(true, |incoming| !new_level.contains_key(&(candidate, Some(incoming.inverse())))) {
+                match new_level.get_mut(&(candidate, incoming)) {
+                    None => {new_level.insert((candidate, incoming), *count);}
                     Some(new_count) => {
-                        *new_count += *count;
+                        
+                            *new_count += *count;
+                        }
                     }
                 }
             }
