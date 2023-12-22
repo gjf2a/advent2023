@@ -81,8 +81,7 @@ impl AlternationTable {
         let target = (self.current + 1).a();
         let mut insertions = vec![];
         for p in self.table[source].iter() {
-            for dir in all::<ManhattanDir>() {
-                let neighbor = dir.next_position(*p);
+            for neighbor in p.manhattan_neighbors() {
                 if let Some(content) = garden.value(neighbor) {
                     if content != '#' {
                         insertions.push(neighbor);
