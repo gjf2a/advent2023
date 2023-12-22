@@ -20,12 +20,14 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 let on_ground = compacted
                     .iter()
-                    .filter(|brick| brick.on_ground())
-                    .count();
-                println!("on ground: {on_ground}");
+                    .enumerate()
+                    .filter(|(_,brick)| brick.on_ground())
+                    .map(|(i,_)| i)
+                    .collect::<IndexSet<_>>();
+                println!("on ground: {on_ground:?}");
                 let total = necessary
                     .iter()
-                    .map(|n| falling_after_disintegrating(on_ground, *n, &supporters))
+                    .map(|n| falling_after_disintegrating(&on_ground, *n, &supporters))
                     .sum::<usize>();
                 println!("Part {part:?}: {total}");
             }
@@ -35,7 +37,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn falling_after_disintegrating(
-    on_ground: usize,
+    on_ground: &IndexSet<usize>,
     disintegrated: usize,
     supporters: &Vec<IndexSet<usize>>,
 ) -> usize {
@@ -53,8 +55,8 @@ fn falling_after_disintegrating(
     }
     supporters
         .iter()
-        .skip(on_ground)
-        .filter(|support| support.len() == 0)
+        .enumerate()
+        .filter(|(i, support)| !on_ground.contains(i) && support.len() == 0)
         .count()
 }
 
