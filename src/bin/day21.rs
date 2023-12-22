@@ -1,4 +1,5 @@
 use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
+use bare_metal_modulo::{ModNumC, MNum};
 use enum_iterator::all;
 use indexmap::{IndexMap, IndexSet};
 use num_integer::Integer;
@@ -20,12 +21,12 @@ fn main() -> anyhow::Result<()> {
 
         match part {
             Part::One => {
-                let mut table = ReachableTable::new(start);
+                let mut table = AlternationTable::new(start);
                 let iterations = if filename.contains("ex") {6} else {64};
                 for _ in 0..iterations {
                     table.expand_once(&garden);
                 }
-                println!("Part {part:?}: {}", table.last_row().len());
+                println!("Part {part:?}: {}", table.current_reachable());
             }
             Part::Two => {
                 if options[0] == "saturate" {
@@ -56,6 +57,43 @@ fn main() -> anyhow::Result<()> {
 
         Ok(())
     })
+}
+
+struct AlternationTable {
+    table: [IndexSet<Position>; 2],
+    current: ModNumC<usize,2>
+}
+
+impl AlternationTable {
+    fn new(start: Position) -> Self {
+        let mut odd = IndexSet::new();
+        odd.insert(start);
+        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0)}
+    }
+
+    fn current_reachable(&self) -> usize {
+        self.table[self.current.a()].len()
+    }
+
+    fn expand_once(&mut self, garden: &GridCharWorld) {
+        let source = self.current.a();
+        let target = (self.current + 1).a();
+        let mut insertions = vec![];
+        for p in self.table[source].iter() {
+            for dir in all::<ManhattanDir>() {
+                let neighbor = dir.next_position(*p);
+                if let Some(content) = garden.value(neighbor) {
+                    if content != '#' {
+                        insertions.push(neighbor);
+                    }
+                }
+            }
+        }
+        for p in insertions {
+            self.table[target].insert(p);
+        }
+        self.current += 1;
+    }
 }
 
 #[derive(Debug)]
