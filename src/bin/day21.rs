@@ -30,19 +30,19 @@ fn main() -> anyhow::Result<()> {
             }
             Part::Two => {
                 if options[0] == "saturate" {
-                    let mut table = ReachableTable::new(start);
+                    let mut table = AlternationTable::new(start);
                     let num_open = garden.position_value_iter().filter(|(_,v)| **v != '#').count();
                     let mut count = 0;
                     let mut prev_open = 0;
                     let mut prev_sum = 0;
-                    while prev_sum < prev_open + table.last_row().len() {
-                        prev_sum = prev_open + table.last_row().len();
-                        prev_open = table.last_row().len();
+                    while prev_sum < prev_open + table.current_reachable() {
+                        prev_sum = prev_open + table.current_reachable();
+                        prev_open = table.current_reachable();
                         count += 1;
                         table.expand_once(&garden);
                     }
-                    println!("After {count} iterations, we alternate between {prev_open} and {}", table.last_row().len());
-                    println!("Total open squares: {num_open}; sum of alternation: {}", prev_open + table.last_row().len());
+                    println!("After {count} iterations, we alternate between {prev_open} and {}", table.current_reachable());
+                    println!("Total open squares: {num_open}; sum of alternation: {}", prev_open + table.current_reachable());
                 } else {
                     let iterations = options[0].parse::<usize>().unwrap();
                     let mut table = InfiniteTable::new(start);
@@ -61,14 +61,15 @@ fn main() -> anyhow::Result<()> {
 
 struct AlternationTable {
     table: [IndexSet<Position>; 2],
-    current: ModNumC<usize,2>
+    current: ModNumC<usize,2>,
+    last_iteration_unchanged: bool
 }
 
 impl AlternationTable {
     fn new(start: Position) -> Self {
         let mut odd = IndexSet::new();
         odd.insert(start);
-        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0)}
+        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0), last_iteration_unchanged: false}
     }
 
     fn current_reachable(&self) -> usize {
@@ -89,42 +90,12 @@ impl AlternationTable {
                 }
             }
         }
+        let start_len = self.table[target].len();
         for p in insertions {
             self.table[target].insert(p);
         }
+        self.last_iteration_unchanged = start_len == self.table[target].len();
         self.current += 1;
-    }
-}
-
-#[derive(Debug)]
-struct ReachableTable {
-    reachable: Vec<IndexSet<Position>>,
-}
-
-impl ReachableTable {
-    fn new(start: Position) -> Self {
-        let mut reachable = vec![IndexSet::new()];
-        reachable[0].insert(start);
-        Self { reachable }
-    }
-
-    fn last_row(&self) -> &IndexSet<Position> {
-        &self.reachable[self.reachable.len() - 1]
-    }
-
-    fn expand_once(&mut self, garden: &GridCharWorld) {
-        let mut next_level = IndexSet::new();
-        for p in self.reachable[self.reachable.len() - 1].iter() {
-            for dir in all::<ManhattanDir>() {
-                let neighbor = dir.next_position(*p);
-                if let Some(content) = garden.value(neighbor) {
-                    if content != '#' {
-                        next_level.insert(neighbor);
-                    }
-                }
-            }
-        }
-        self.reachable.push(next_level);
     }
 }
 
