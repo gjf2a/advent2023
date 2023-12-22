@@ -47,6 +47,9 @@ fn main() -> anyhow::Result<()> {
                     let mut table = InfiniteTable::new(start);
                     for _ in 0..iterations {
                         table.expand_once(&garden);
+                        if options.len() > 1 {
+                            println!("current: {:?}", table.table[table.current.a()]);
+                        }
                     }
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
@@ -115,12 +118,12 @@ impl InfiniteTable {
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let source = self.current.a();
         let target = (self.current + 1).a();
-        let mut insertions = vec![];
+        let mut insertions = IndexSet::new();
         for p in self.table[source].iter() {
             for neighbor in p.manhattan_neighbors() {
                 if let Some(content) = garden.value(bounded(neighbor, garden)) {
                     if content != '#' {
-                        insertions.push(neighbor);
+                        insertions.insert(neighbor);
                     }
                 }
             }
