@@ -1,48 +1,46 @@
 use std::str::FromStr;
 
-use advent_code_lib::{all_lines, chooser_main, Point};
+use advent_code_lib::{all_lines, chooser_main, Part, Point};
 use indexmap::IndexSet;
 
 // 881 is too high for Part 1
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part, options| {
-        let view = options.len() > 0;
-        let mut bricks = all_lines(filename)?
-            .map(|line| line.parse::<Brick>().unwrap())
-            .collect::<Vec<_>>();
-        bricks.sort_by_key(|k| k.bottom());
-        if view {
-            for brick in bricks.iter() {
-                println!("{brick:?}");
-            }
-            println!("longest: {}", bricks.iter().map(|b| b.len()).max().unwrap());
-        }
-        let compacted = compacted(&bricks);
-        if view {
-            for brick in compacted.iter() {
-                println!("{brick:?}");
-            }
-        }
-        let mut supporters = vec![];
-        for (i, brick) in compacted.iter().enumerate() {
-            supporters.push(vec![]);
-            for j in 0..i {
-                if brick.overlaps(&compacted[j]) && compacted[j].top() + 1 == brick.bottom() {
-                    supporters[i].push(j);
-                }
-            }
-        }
-        if view {
-            println!("{supporters:?}");
-        }
+    chooser_main(|filename, part, _| {
+        let compacted = compacted_bricks(filename)?;
+        let supporters = supporters(&compacted);
         let necessary = (0..compacted.len())
             .filter(|i| supporters.iter().any(|s| s.len() == 1 && s[0] == *i))
             .collect::<IndexSet<_>>();
-        let disintegrate = compacted.len() - necessary.len();
-        println!("Part {part:?}: {disintegrate}");
+        match part {
+            Part::One => {
+                println!("Part {part:?}: {}", compacted.len() - necessary.len());
+            }
+            Part::Two => {}
+        }
         Ok(())
     })
+}
+
+fn compacted_bricks(filename: &str) -> anyhow::Result<Vec<Brick>> {
+    let mut bricks = all_lines(filename)?
+        .map(|line| line.parse::<Brick>().unwrap())
+        .collect::<Vec<_>>();
+    bricks.sort_by_key(|k| k.bottom());
+    Ok(compacted(&bricks))
+}
+
+fn supporters(compacted: &Vec<Brick>) -> Vec<Vec<usize>> {
+    let mut supporters = vec![];
+    for (i, brick) in compacted.iter().enumerate() {
+        supporters.push(vec![]);
+        for j in 0..i {
+            if brick.overlaps(&compacted[j]) && compacted[j].top() + 1 == brick.bottom() {
+                supporters[i].push(j);
+            }
+        }
+    }
+    supporters
 }
 
 fn compacted(bricks: &Vec<Brick>) -> Vec<Brick> {
@@ -92,10 +90,6 @@ impl Brick {
                 })
                 .collect(),
         }
-    }
-
-    fn len(&self) -> usize {
-        self.cubes.len()
     }
 
     fn top(&self) -> isize {
