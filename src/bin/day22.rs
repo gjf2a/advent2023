@@ -1,9 +1,9 @@
-use std::str::FromStr;
+use std::{str::FromStr, collections::VecDeque};
 
 use advent_code_lib::{all_lines, chooser_main, Part, Point};
 use indexmap::IndexSet;
 
-// 881 is too high for Part 1
+// 62355 is too high for Part 2
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, _| {
@@ -16,10 +16,40 @@ fn main() -> anyhow::Result<()> {
             Part::One => {
                 println!("Part {part:?}: {}", compacted.len() - necessary.len());
             }
-            Part::Two => {}
+            Part::Two => {
+                let on_ground = compacted.iter().take_while(|brick| brick.on_ground()).count();
+                let total = necessary.iter().map(|n| falling_after_disintegrating(on_ground, *n, &supporters)).sum::<usize>();
+                println!("Part {part:?}: {total}");
+            }
         }
         Ok(())
     })
+}
+
+fn falling_after_disintegrating(on_ground: usize, disintegrated: usize, supporters: &Vec<IndexSet<usize>>) -> usize {
+    let supporting = supporting(&supporters);
+    let mut supporters = supporters.clone();
+    let mut disintegrating = VecDeque::new();
+    disintegrating.push_back(disintegrated);
+    while let Some(disintegrator) = disintegrating.pop_front() {
+        for target in supporting[disintegrator].iter() {
+            supporters[*target].remove(&disintegrator);
+            if supporters[*target].len() == 0 {
+                disintegrating.push_back(*target);
+            }
+        }
+    }
+    supporters.iter().skip(on_ground).filter(|support| support.len() == 0).count()
+}
+
+fn supporting(supporters: &Vec<IndexSet<usize>>) -> Vec<Vec<usize>> {
+    let mut result = (0..supporters.len()).map(|_| vec![]).collect::<Vec<_>>();
+    for (i, i_support) in supporters.iter().enumerate() {
+        for supporter in i_support.iter() {
+            result[*supporter].push(i);
+        }
+    }
+    result
 }
 
 fn compacted_bricks(filename: &str) -> anyhow::Result<Vec<Brick>> {
@@ -30,13 +60,13 @@ fn compacted_bricks(filename: &str) -> anyhow::Result<Vec<Brick>> {
     Ok(compacted(&bricks))
 }
 
-fn supporters(compacted: &Vec<Brick>) -> Vec<Vec<usize>> {
+fn supporters(compacted: &Vec<Brick>) -> Vec<IndexSet<usize>> {
     let mut supporters = vec![];
     for (i, brick) in compacted.iter().enumerate() {
-        supporters.push(vec![]);
+        supporters.push(IndexSet::new());
         for j in 0..i {
             if brick.overlaps(&compacted[j]) && compacted[j].top() + 1 == brick.bottom() {
-                supporters[i].push(j);
+                supporters[i].insert(j);
             }
         }
     }
@@ -64,6 +94,10 @@ struct Brick {
 }
 
 impl Brick {
+    fn on_ground(&self) -> bool {
+        self.bottom() == 1
+    }
+
     fn bottom(&self) -> isize {
         self.zs().min().unwrap()
     }
