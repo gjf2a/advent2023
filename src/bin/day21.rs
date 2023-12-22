@@ -97,40 +97,36 @@ impl AlternationTable {
 }
 
 struct InfiniteTable {
-    archived: [IndexSet<Position>; 2],
-    pending: [IndexSet<Position>; 2],
+    table: [IndexSet<Position>; 2],
     current: ModNumC<usize,2>,
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
-        let mut init = IndexSet::new();
-        init.insert(start);
-        Self {pending: [init, IndexSet::new()], current: ModNumC::new(0), archived: [IndexSet::new(), IndexSet::new()]}
+        let mut odd = IndexSet::new();
+        odd.insert(start);
+        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0)}
     }
 
     fn current_reachable(&self) -> u128 {
-        self.pending[self.current.a()].len() as u128
+        self.table[self.current.a()].len() as u128        
     }    
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let source = self.current.a();
         let target = (self.current + 1).a();
         let mut insertions = vec![];
-        for p in self.pending[source].iter() {
+        for p in self.table[source].iter() {
             for neighbor in p.manhattan_neighbors() {
                 if let Some(content) = garden.value(bounded(neighbor, garden)) {
-                    if content != '#' && !self.archived[target].contains(p) {
+                    if content != '#' {
                         insertions.push(neighbor);
                     }
                 }
             }
         }
         for p in insertions {
-            self.pending[target].insert(p);
-        }
-        for p in self.pending[source].drain(..) {
-            self.archived[source].insert(p);
+            self.table[target].insert(p);
         }
         self.current += 1;
     }
