@@ -48,7 +48,6 @@ fn main() -> anyhow::Result<()> {
                     for _ in 0..iterations {
                         table.expand_once(&garden);
                     }
-                    println!("perpetual: {}", table.perpetual);
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
@@ -98,46 +97,40 @@ impl AlternationTable {
 }
 
 struct InfiniteTable {
-    table: [IndexSet<Position>; 2],
+    archived: [IndexSet<Position>; 2],
+    pending: [IndexSet<Position>; 2],
     current: ModNumC<usize,2>,
-    perpetual: u128,
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
-        let mut odd = IndexSet::new();
-        odd.insert(start);
-        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0), perpetual: 0}
+        let mut init = IndexSet::new();
+        init.insert(start);
+        Self {pending: [init, IndexSet::new()], current: ModNumC::new(0), archived: [IndexSet::new(), IndexSet::new()]}
     }
 
     fn current_reachable(&self) -> u128 {
-        self.perpetual + self.table[self.current.a()].len() as u128        
+        self.pending[self.current.a()].len() as u128
     }    
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let source = self.current.a();
         let target = (self.current + 1).a();
         let mut insertions = vec![];
-        let mut removals = vec![];
-        for p in self.table[source].iter() {
+        for p in self.pending[source].iter() {
             for neighbor in p.manhattan_neighbors() {
                 if let Some(content) = garden.value(bounded(neighbor, garden)) {
-                    if content != '#' {
-                        if self.table[source].contains(&neighbor) {
-                            removals.push(neighbor);
-                        } else {
-                            insertions.push(neighbor);
-                        }
+                    if content != '#' && !self.archived[target].contains(p) {
+                        insertions.push(neighbor);
                     }
                 }
             }
         }
-        for p in removals.iter() {
-            self.table[source].remove(p);
-            self.perpetual += 1;
-        }
         for p in insertions {
-            self.table[target].insert(p);
+            self.pending[target].insert(p);
+        }
+        for p in self.pending[source].drain(..) {
+            self.archived[source].insert(p);
         }
         self.current += 1;
     }
