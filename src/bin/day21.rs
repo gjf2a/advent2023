@@ -1,7 +1,6 @@
-use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
+use advent_code_lib::{chooser_main, GridCharWorld, Part, Position};
 use bare_metal_modulo::{ModNumC, MNum};
-use enum_iterator::all;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use num_integer::Integer;
 
 
@@ -29,7 +28,7 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {}", table.current_reachable());
             }
             Part::Two => {
-                if options[0] == "saturate" {
+                if options.len() > 0 && options[0] == "saturate" {
                     let mut table = AlternationTable::new(start);
                     let num_open = garden.position_value_iter().filter(|(_,v)| **v != '#').count();
                     let mut count = 0;
@@ -44,13 +43,13 @@ fn main() -> anyhow::Result<()> {
                     println!("After {count} iterations, we alternate between {prev_open} and {}", table.current_reachable());
                     println!("Total open squares: {num_open}; sum of alternation: {}", prev_open + table.current_reachable());
                 } else {
-                    let iterations = options[0].parse::<usize>().unwrap();
+                    let iterations = if options.len() > 0 {options[0].parse::<usize>().unwrap()} else {26501365};
                     let mut table = InfiniteTable::new(start);
-                    for i in 0..iterations {
-                        println!("round {}", i + 1);
+                    for _ in 0..iterations {
                         table.expand_once(&garden);
                     }
-                    println!("Part {part:?}: {}", table.score());
+                    println!("perpetual: {}", table.perpetual);
+                    println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
         }
@@ -98,58 +97,52 @@ impl AlternationTable {
     }
 }
 
-#[derive(Debug)]
 struct InfiniteTable {
-    counts: IndexMap<(Position, Option<ManhattanDir>), u128>,
+    table: [IndexSet<Position>; 2],
+    current: ModNumC<usize,2>,
+    perpetual: u128,
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
-        let mut counts = IndexMap::new();
-        counts.insert((start, None), 1);
-        Self { counts }
+        let mut odd = IndexSet::new();
+        odd.insert(start);
+        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0), perpetual: 0}
     }
 
-    fn score(&self) -> u128 {
-        self.counts.values().sum()
-    }
+    fn current_reachable(&self) -> u128 {
+        self.perpetual + self.table[self.current.a()].len() as u128        
+    }    
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
-        let mut candidates = IndexMap::new();
-        for ((p, _), count) in self.counts.iter() {
-            for dir in all::<ManhattanDir>() {
-                let neighbor = dir.next_position(*p);
-                let key = (neighbor, Some(dir));
-                match candidates.get_mut(&key) {
-                    None => {candidates.insert(key, *count);}
-                    Some(v) => *v += *count,
-                }
-            }
-        }
-
-        let mut new_level = IndexMap::new();
-        for ((mut candidate, incoming), count) in candidates {
-            wrap_in_bounds(&mut candidate, garden);
-            if garden.value(candidate).unwrap() != '#' {
-                if incoming.map_or(true, |incoming| {
-                    !garden.at_edge(candidate) || !new_level.contains_key(&(candidate, Some(incoming.inverse())))
-                }) {
-                    match new_level.get_mut(&(candidate, incoming)) {
-                        None => {
-                            new_level.insert((candidate, incoming), count);
-                        }
-                        Some(new_count) => {
-                            *new_count += count;
+        let source = self.current.a();
+        let target = (self.current + 1).a();
+        let mut insertions = vec![];
+        let mut removals = vec![];
+        for p in self.table[source].iter() {
+            for neighbor in p.manhattan_neighbors() {
+                if let Some(content) = garden.value(bounded(neighbor, garden)) {
+                    if content != '#' {
+                        if self.table[source].contains(&neighbor) {
+                            removals.push(neighbor);
+                        } else {
+                            insertions.push(neighbor);
                         }
                     }
                 }
             }
         }
-        std::mem::swap(&mut self.counts, &mut new_level);
+        for p in removals.iter() {
+            self.table[source].remove(p);
+            self.perpetual += 1;
+        }
+        for p in insertions {
+            self.table[target].insert(p);
+        }
+        self.current += 1;
     }
 }
 
-fn wrap_in_bounds(p: &mut Position, garden: &GridCharWorld) {
-    p.col = p.col.mod_floor(&(garden.width() as isize));
-    p.row = p.row.mod_floor(&(garden.height() as isize));
+fn bounded(p: Position, garden: &GridCharWorld) -> Position {
+    Position {row: p.row.mod_floor(&(garden.height() as isize)), col: p.col.mod_floor(&(garden.width() as isize))}
 }
