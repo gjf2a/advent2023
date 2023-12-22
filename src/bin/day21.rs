@@ -60,7 +60,11 @@ fn main() -> anyhow::Result<()> {
                     for _ in 0..iterations {
                         table.expand_once(&garden);
                         if options.len() > 1 {
-                            println!("current: {:?}", table.table[table.current.a()]);
+                            print!("current:");
+                            for p in table.table[table.current.a()].iter() {
+                                print!(" {p}");
+                            }
+                            println!();
                         }
                     }
                     println!("Part {part:?}: {}", table.current_reachable());
