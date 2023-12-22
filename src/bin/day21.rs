@@ -1,8 +1,7 @@
 use advent_code_lib::{chooser_main, GridCharWorld, Part, Position};
-use bare_metal_modulo::{ModNumC, MNum};
+use bare_metal_modulo::{MNum, ModNumC};
 use indexmap::IndexSet;
 use num_integer::Integer;
-
 
 /*
 Example alternates between 39 and 42 active starting at step 13.
@@ -21,7 +20,7 @@ fn main() -> anyhow::Result<()> {
         match part {
             Part::One => {
                 let mut table = AlternationTable::new(start);
-                let iterations = if filename.contains("ex") {6} else {64};
+                let iterations = if filename.contains("ex") { 6 } else { 64 };
                 for _ in 0..iterations {
                     table.expand_once(&garden);
                 }
@@ -30,7 +29,10 @@ fn main() -> anyhow::Result<()> {
             Part::Two => {
                 if options.len() > 0 && options[0] == "saturate" {
                     let mut table = AlternationTable::new(start);
-                    let num_open = garden.position_value_iter().filter(|(_,v)| **v != '#').count();
+                    let num_open = garden
+                        .position_value_iter()
+                        .filter(|(_, v)| **v != '#')
+                        .count();
                     let mut count = 0;
                     let mut prev_open = 0;
                     let mut prev_sum = 0;
@@ -40,10 +42,20 @@ fn main() -> anyhow::Result<()> {
                         count += 1;
                         table.expand_once(&garden);
                     }
-                    println!("After {count} iterations, we alternate between {prev_open} and {}", table.current_reachable());
-                    println!("Total open squares: {num_open}; sum of alternation: {}", prev_open + table.current_reachable());
+                    println!(
+                        "After {count} iterations, we alternate between {prev_open} and {}",
+                        table.current_reachable()
+                    );
+                    println!(
+                        "Total open squares: {num_open}; sum of alternation: {}",
+                        prev_open + table.current_reachable()
+                    );
                 } else {
-                    let iterations = if options.len() > 0 {options[0].parse::<usize>().unwrap()} else {26501365};
+                    let iterations = if options.len() > 0 {
+                        options[0].parse::<usize>().unwrap()
+                    } else {
+                        26501365
+                    };
                     let mut table = InfiniteTable::new(start);
                     for _ in 0..iterations {
                         table.expand_once(&garden);
@@ -62,15 +74,19 @@ fn main() -> anyhow::Result<()> {
 
 struct AlternationTable {
     table: [IndexSet<Position>; 2],
-    current: ModNumC<usize,2>,
-    last_iteration_unchanged: bool
+    current: ModNumC<usize, 2>,
+    last_iteration_unchanged: bool,
 }
 
 impl AlternationTable {
     fn new(start: Position) -> Self {
         let mut odd = IndexSet::new();
         odd.insert(start);
-        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0), last_iteration_unchanged: false}
+        Self {
+            table: [odd, IndexSet::new()],
+            current: ModNumC::new(0),
+            last_iteration_unchanged: false,
+        }
     }
 
     fn current_reachable(&self) -> usize {
@@ -101,19 +117,22 @@ impl AlternationTable {
 
 struct InfiniteTable {
     table: [IndexSet<Position>; 2],
-    current: ModNumC<usize,2>,
+    current: ModNumC<usize, 2>,
 }
 
 impl InfiniteTable {
     fn new(start: Position) -> Self {
         let mut odd = IndexSet::new();
         odd.insert(start);
-        Self {table: [odd, IndexSet::new()], current: ModNumC::new(0)}
+        Self {
+            table: [odd, IndexSet::new()],
+            current: ModNumC::new(0),
+        }
     }
 
     fn current_reachable(&self) -> u128 {
-        self.table[self.current.a()].len() as u128        
-    }    
+        self.table[self.current.a()].len() as u128
+    }
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
         let source = self.current.a();
@@ -136,5 +155,8 @@ impl InfiniteTable {
 }
 
 fn bounded(p: Position, garden: &GridCharWorld) -> Position {
-    Position {row: p.row.mod_floor(&(garden.height() as isize)), col: p.col.mod_floor(&(garden.width() as isize))}
+    Position {
+        row: p.row.mod_floor(&(garden.height() as isize)),
+        col: p.col.mod_floor(&(garden.width() as isize)),
+    }
 }

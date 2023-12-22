@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use advent_code_lib::{chooser_main, Point, all_lines};
+use advent_code_lib::{all_lines, chooser_main, Point};
 use indexmap::IndexSet;
 
 // 881 is too high for Part 1
@@ -8,7 +8,9 @@ use indexmap::IndexSet;
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
         let view = options.len() > 0;
-        let mut bricks = all_lines(filename)?.map(|line| line.parse::<Brick>().unwrap()).collect::<Vec<_>>();
+        let mut bricks = all_lines(filename)?
+            .map(|line| line.parse::<Brick>().unwrap())
+            .collect::<Vec<_>>();
         bricks.sort_by_key(|k| k.bottom());
         if view {
             for brick in bricks.iter() {
@@ -31,9 +33,15 @@ fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        if view {println!("{supporters:?}");}
-        let necessary = (0..compacted.len()).filter(|i| supporters.iter().any(|s| s.len() == 1 && s[0] == *i)).collect::<IndexSet<_>>();
-        let disintegrate = (0..compacted.len()).filter(|i| !necessary.contains(i)).count();
+        if view {
+            println!("{supporters:?}");
+        }
+        let necessary = (0..compacted.len())
+            .filter(|i| supporters.iter().any(|s| s.len() == 1 && s[0] == *i))
+            .collect::<IndexSet<_>>();
+        let disintegrate = (0..compacted.len())
+            .filter(|i| !necessary.contains(i))
+            .count();
         println!("Part {part:?}: {disintegrate}");
         Ok(())
     })
@@ -43,7 +51,12 @@ fn compacted(bricks: &Vec<Brick>) -> Vec<Brick> {
     let floor = &bricks[0];
     let mut result = vec![floor.drop_to(1)];
     for brick in bricks.iter().skip(1) {
-        let target_z = 1 + result.iter().filter(|below| below.overlaps(brick)).map(|below| below.top()).max().unwrap_or(0);
+        let target_z = 1 + result
+            .iter()
+            .filter(|below| below.overlaps(brick))
+            .map(|below| below.top())
+            .max()
+            .unwrap_or(0);
         result.push(brick.drop_to(target_z));
     }
     result
@@ -51,7 +64,7 @@ fn compacted(bricks: &Vec<Brick>) -> Vec<Brick> {
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct Brick {
-    cubes: Vec<Point<isize,3>>
+    cubes: Vec<Point<isize, 3>>,
 }
 
 impl Brick {
@@ -60,16 +73,27 @@ impl Brick {
     }
 
     fn overlaps(&self, other: &Brick) -> bool {
-        self.cubes.iter().any(|cube| other.cubes.iter().any(|other| (0..2).all(|i| cube[i] == other[i])))
+        self.cubes.iter().any(|cube| {
+            other
+                .cubes
+                .iter()
+                .any(|other| (0..2).all(|i| cube[i] == other[i]))
+        })
     }
 
     fn drop_to(&self, target_z: isize) -> Brick {
         let distance = self.bottom() - target_z;
-        Self {cubes: self.cubes.iter().map(|cube| {
-            let mut drop = *cube;
-            drop[2] -= distance;
-            drop
-        }).collect()}
+        Self {
+            cubes: self
+                .cubes
+                .iter()
+                .map(|cube| {
+                    let mut drop = *cube;
+                    drop[2] -= distance;
+                    drop
+                })
+                .collect(),
+        }
     }
 
     fn len(&self) -> usize {
@@ -80,7 +104,7 @@ impl Brick {
         self.zs().max().unwrap()
     }
 
-    fn zs(&self) -> impl Iterator<Item=isize> + '_ {
+    fn zs(&self) -> impl Iterator<Item = isize> + '_ {
         self.cubes.iter().map(|cube| cube[2])
     }
 }
@@ -90,14 +114,16 @@ impl FromStr for Brick {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut points = s.split("~");
-        let start = points.next().unwrap().parse::<Point<isize,3>>()?;
-        let end = points.next().unwrap().parse::<Point<isize,3>>()?;
+        let start = points.next().unwrap().parse::<Point<isize, 3>>()?;
+        let end = points.next().unwrap().parse::<Point<isize, 3>>()?;
         let axis = (0..=2).find(|i| start[*i] != end[*i]).unwrap_or(0);
-        let cubes = (start[axis]..=end[axis]).map(|n| {
-            let mut cube = start;
-            cube[axis] = n;
-            cube
-        }).collect();
-        Ok(Self {cubes})
+        let cubes = (start[axis]..=end[axis])
+            .map(|n| {
+                let mut cube = start;
+                cube[axis] = n;
+                cube
+            })
+            .collect();
+        Ok(Self { cubes })
     }
 }
