@@ -1,13 +1,14 @@
-use std::{str::FromStr, collections::VecDeque};
+use std::{collections::VecDeque, str::FromStr};
 
 use advent_code_lib::{all_lines, chooser_main, Part, Point};
 use indexmap::IndexSet;
 
-// 62355 is too high for Part 2
+// 56341 is too high for Part 2
 
 fn main() -> anyhow::Result<()> {
-    chooser_main(|filename, part, _| {
-        let compacted = compacted_bricks(filename)?;
+    chooser_main(|filename, part, options| {
+        let view = options.len() > 0;
+        let compacted = compacted_bricks(filename, view)?;
         let supporters = supporters(&compacted);
         let necessary = (0..compacted.len())
             .filter(|i| supporters.iter().any(|s| s.len() == 1 && s[0] == *i))
@@ -17,8 +18,15 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {}", compacted.len() - necessary.len());
             }
             Part::Two => {
-                let on_ground = compacted.iter().take_while(|brick| brick.on_ground()).count();
-                let total = necessary.iter().map(|n| falling_after_disintegrating(on_ground, *n, &supporters)).sum::<usize>();
+                let on_ground = compacted
+                    .iter()
+                    .filter(|brick| brick.on_ground())
+                    .count();
+                println!("on ground: {on_ground}");
+                let total = necessary
+                    .iter()
+                    .map(|n| falling_after_disintegrating(on_ground, *n, &supporters))
+                    .sum::<usize>();
                 println!("Part {part:?}: {total}");
             }
         }
@@ -26,7 +34,11 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn falling_after_disintegrating(on_ground: usize, disintegrated: usize, supporters: &Vec<IndexSet<usize>>) -> usize {
+fn falling_after_disintegrating(
+    on_ground: usize,
+    disintegrated: usize,
+    supporters: &Vec<IndexSet<usize>>,
+) -> usize {
     let supporting = supporting(&supporters);
     let mut supporters = supporters.clone();
     let mut disintegrating = VecDeque::new();
@@ -39,7 +51,11 @@ fn falling_after_disintegrating(on_ground: usize, disintegrated: usize, supporte
             }
         }
     }
-    supporters.iter().skip(on_ground).filter(|support| support.len() == 0).count()
+    supporters
+        .iter()
+        .skip(on_ground)
+        .filter(|support| support.len() == 0)
+        .count()
 }
 
 fn supporting(supporters: &Vec<IndexSet<usize>>) -> Vec<Vec<usize>> {
@@ -52,12 +68,18 @@ fn supporting(supporters: &Vec<IndexSet<usize>>) -> Vec<Vec<usize>> {
     result
 }
 
-fn compacted_bricks(filename: &str) -> anyhow::Result<Vec<Brick>> {
+fn compacted_bricks(filename: &str, view: bool) -> anyhow::Result<Vec<Brick>> {
     let mut bricks = all_lines(filename)?
         .map(|line| line.parse::<Brick>().unwrap())
         .collect::<Vec<_>>();
     bricks.sort_by_key(|k| k.bottom());
-    Ok(compacted(&bricks))
+    let result = compacted(&bricks);
+    if view {
+        for brick in result.iter() {
+            println!("{brick:?}");
+        }
+    }
+    Ok(result)
 }
 
 fn supporters(compacted: &Vec<Brick>) -> Vec<IndexSet<usize>> {
