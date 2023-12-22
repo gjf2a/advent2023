@@ -39,9 +39,7 @@ fn main() -> anyhow::Result<()> {
         let necessary = (0..compacted.len())
             .filter(|i| supporters.iter().any(|s| s.len() == 1 && s[0] == *i))
             .collect::<IndexSet<_>>();
-        let disintegrate = (0..compacted.len())
-            .filter(|i| !necessary.contains(i))
-            .count();
+        let disintegrate = compacted.len() - necessary.len();
         println!("Part {part:?}: {disintegrate}");
         Ok(())
     })
