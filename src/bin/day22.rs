@@ -3,8 +3,6 @@ use std::{collections::VecDeque, str::FromStr};
 use advent_code_lib::{all_lines, chooser_main, Part, Point};
 use indexmap::IndexSet;
 
-// 56341 is too high for Part 2
-
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
         let view = options.len() > 0;
@@ -21,10 +19,9 @@ fn main() -> anyhow::Result<()> {
                 let on_ground = compacted
                     .iter()
                     .enumerate()
-                    .filter(|(_,brick)| brick.on_ground())
-                    .map(|(i,_)| i)
+                    .filter(|(_, brick)| brick.on_ground())
+                    .map(|(i, _)| i)
                     .collect::<IndexSet<_>>();
-                println!("on ground: {on_ground:?}");
                 let total = necessary
                     .iter()
                     .map(|n| falling_after_disintegrating(&on_ground, *n, &supporters))
