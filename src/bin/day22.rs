@@ -27,8 +27,8 @@ fn main() -> anyhow::Result<()> {
         let mut supporters = vec![];
         for (i, brick) in compacted.iter().enumerate() {
             supporters.push(vec![]);
-            for j in (0..i).skip_while(|j| compacted[*j].top() + 1 < brick.bottom()) {
-                if brick.overlaps(&compacted[j]) {
+            for j in 0..i {
+                if brick.overlaps(&compacted[j]) && compacted[j].top() + 1 == brick.bottom() {
                     supporters[i].push(j);
                 }
             }
