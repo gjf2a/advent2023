@@ -1,4 +1,6 @@
-use advent_code_lib::{chooser_main, GridCharWorld, Part, Position, ManhattanDir, DirType, RingIterator};
+use advent_code_lib::{
+    chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position, RingIterator,
+};
 use bare_metal_modulo::{MNum, ModNumC};
 use enum_iterator::all;
 use indexmap::IndexSet;
@@ -30,7 +32,10 @@ fn main() -> anyhow::Result<()> {
             }
             Part::Two => {
                 if options.len() > 0 && options[0] == "saturate" {
-                    println!("ignored interior: {:?}", find_ignored_interior(start, &garden));
+                    println!(
+                        "ignored interior: {:?}",
+                        find_ignored_interior(start, &garden)
+                    );
                 } else {
                     let ignored_interior = find_ignored_interior(start, &garden);
                     let iterations = if options.len() > 0 {
@@ -79,7 +84,11 @@ fn find_ignored_interior(start: Position, garden: &GridCharWorld) -> IndexSet<Po
     );
     let ignored = table.ignored_points(&garden);
     println!("Ignored: {ignored:?}");
-    let ignored_interior = ignored.iter().filter(|p| garden.ring_iter().all(|r| r != **p)).copied().collect::<IndexSet<_>>();
+    let ignored_interior = ignored
+        .iter()
+        .filter(|p| garden.ring_iter().all(|r| r != **p))
+        .copied()
+        .collect::<IndexSet<_>>();
     println!("Ignored interior: {ignored_interior:?}");
     ignored_interior
 }
@@ -111,7 +120,11 @@ impl AlternationTable {
     }
 
     fn ignored_points(&self, garden: &GridCharWorld) -> IndexSet<Position> {
-        garden.position_value_iter().filter(|(p, v)| **v != '#' && (0..2).all(|s| !self.table[s].contains(*p))).map(|(p,_)| *p).collect()
+        garden
+            .position_value_iter()
+            .filter(|(p, v)| **v != '#' && (0..2).all(|s| !self.table[s].contains(*p)))
+            .map(|(p, _)| *p)
+            .collect()
     }
 
     fn expand_once(&mut self, garden: &GridCharWorld) {
@@ -145,17 +158,30 @@ struct ExpandingDonut {
 
 #[derive(Debug)]
 struct DonutHole {
-    min_x: isize, max_x: isize, min_y: isize, max_y: isize, count: u128
+    min_x: isize,
+    max_x: isize,
+    min_y: isize,
+    max_y: isize,
+    count: u128,
 }
 
 impl ExpandingDonut {
     fn new(start: Position, garden: &GridCharWorld, ignored_interior: IndexSet<Position>) -> Self {
         let mut donut_holes = [DonutHole::new(start), DonutHole::new(start)];
         donut_holes[0].count = 1;
-        let frontier = start.manhattan_neighbors().filter(|n| !is_blocked(garden, *n)).collect();
-        Self {donut_holes, expansions: 1, current: ModNumC::new(1), frontier: [IndexSet::new(), frontier], ignored_interior}
+        let frontier = start
+            .manhattan_neighbors()
+            .filter(|n| !is_blocked(garden, *n))
+            .collect();
+        Self {
+            donut_holes,
+            expansions: 1,
+            current: ModNumC::new(1),
+            frontier: [IndexSet::new(), frontier],
+            ignored_interior,
+        }
     }
-    
+
     fn current_reachable(&self) -> u128 {
         self.frontier[self.current.a()].len() as u128 + self.donut_holes[self.current.a()].count
     }
@@ -193,14 +219,21 @@ impl ExpandingDonut {
     }
 
     fn ring(&self, offset: isize) -> RingIterator {
-        let start = Position {col: self.donut_holes[0].min_x - offset, row: self.donut_holes[0].min_y - offset};
+        let start = Position {
+            col: self.donut_holes[0].min_x - offset,
+            row: self.donut_holes[0].min_y - offset,
+        };
         let width = self.donut_holes[0].width() + 2 * offset;
         let height = self.donut_holes[0].height() + 2 * offset;
         RingIterator::new(start, width, height)
     }
 
     fn ring_complete(&self, garden: &GridCharWorld, mut ring: RingIterator) -> bool {
-        ring.all(|r| self.ignored_interior.contains(&bounded(r, garden)) || is_blocked(garden, r) || self.frontier.iter().any(|f| f.contains(&r)))
+        ring.all(|r| {
+            self.ignored_interior.contains(&bounded(r, garden))
+                || is_blocked(garden, r)
+                || self.frontier.iter().any(|f| f.contains(&r))
+        })
     }
 }
 
@@ -211,7 +244,7 @@ impl DonutHole {
             min_y: start.row,
             max_x: start.col,
             max_y: start.row,
-            count: 0
+            count: 0,
         }
     }
 
