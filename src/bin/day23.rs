@@ -18,7 +18,13 @@ fn main() -> anyhow::Result<()> {
                             println!("Part {part:?}: {}", table.max_goal_level());
                         }
                         "-cycle" => {
-                            let map = GridCharWorld::from_char_file(filename)?;
+                            let cycles = CycleChecker::get_cycles(filename)?;
+                            println!("{}", cycles.map);
+                            print!("Cycle points:");
+                            for pt in cycles.cycle_members() {
+                                print!(" {pt}");
+                            }
+                            println!();
                         }
                         _ => println!("Unrecognized option"),
                     }
@@ -32,7 +38,45 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn find_cycle(map: &GridCharWorld) {}
+fn goal(map: &GridCharWorld) -> Position {
+    Position {
+        row: map.height() as isize - 1,
+        col: map.width() as isize - 2,
+    }
+}
+
+const CYCLE_CHAR: char = '@';
+
+struct CycleChecker {
+    visited: IndexSet<Position>,
+    map: GridCharWorld,
+}
+
+impl CycleChecker {
+    fn get_cycles(filename: &str) -> anyhow::Result<Self> {
+        let map = GridCharWorld::from_char_file(filename)?;
+        let mut checker = Self {map, visited: IndexSet::new()};
+        checker.find_cycle_members_from(Position {row: 0, col: 1}, None);
+        Ok(checker)
+    }
+
+    fn cycle_members(&self) -> impl Iterator<Item=Position> + '_ {
+        self.map.position_value_iter().filter(|(_,v)| **v == CYCLE_CHAR).map(|(p,_)| *p)
+    }
+
+    fn find_cycle_members_from(&mut self, p: Position, parent: Option<Position>) {
+        self.visited.insert(p);
+        for neighbor in p.manhattan_neighbors().filter(|n| parent.map_or(true, |pt| pt != *n)) {
+            if self.map.value(neighbor).map_or(false, |v| v != '#') {
+                if self.visited.contains(&neighbor) {
+                    self.map.modify(neighbor, |v| *v = CYCLE_CHAR);
+                } else {
+                    self.find_cycle_members_from(neighbor, Some(p));
+                }
+            }
+        }
+    }
+}
 
 struct LongPathTable {
     map: GridCharWorld,
@@ -46,10 +90,7 @@ impl LongPathTable {
     fn new(filename: &str, hike_up_slope: bool) -> anyhow::Result<Self> {
         let map = GridCharWorld::from_char_file(filename)?;
         let paths_of_length = vec![vec![(Position { row: 0, col: 1 }, IndexSet::new())]];
-        let goal = Position {
-            row: map.height() as isize - 1,
-            col: map.width() as isize - 2,
-        };
+        let goal = goal(&map);
         Ok(Self {
             map,
             paths_of_length,
