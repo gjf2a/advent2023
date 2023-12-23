@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
                 let iterations = if filename.contains("ex") { 6 } else { 64 };
                 for _ in 0..iterations {
                     table.expand_once(&garden);
-                    println!("{table:?} {}", table.current_reachable());
+                    //println!("{table:?} {}", table.current_reachable());
                 }
                 println!("Part {part:?}: {}", table.current_reachable());
             }
@@ -42,8 +42,9 @@ fn main() -> anyhow::Result<()> {
                     println!("{table:?}");
                     while table.expansions < iterations {
                         table.expand_once(&garden);
-                        println!("{table:?} {}", table.current_reachable());
+                        //println!("{table:?} {}", table.current_reachable());
                     }
+                    println!("{table:?}");
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
