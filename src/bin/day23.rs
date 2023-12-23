@@ -4,10 +4,6 @@ use enum_iterator::all;
 use im::Vector;
 use indexmap::{IndexSet, IndexMap};
 
-// Part 2 is probably somewhere slightly higher than 4750, based on a different buggy solution. 
-// * 4750 is definitely too low.
-// * That took 15 minutes with the buggy solution.
-
 const START: Position = Position {row: 0, col: 1};
 
 fn goal(map: &GridCharWorld) -> Position {
