@@ -55,13 +55,78 @@ fn main() -> anyhow::Result<()> {
                         _ => println!("Unrecognized option"),
                     }
                 } else {
-                    println!("Attempt a real solution here.");
+                    let map = GridCharWorld::from_char_file(filename)?;
+                    let mut table = JunctionTable::new(&map);
+                    table.expand_fully(true);
+                    println!("{table:?}");
+                    println!("Part {part:?}: {}", table.max_length());
                 }
             }
         }
 
         Ok(())
     })
+}
+
+#[derive(Debug)]
+struct JunctionTable {
+    map: JunctionDistances,
+    paths_of_length: Vec<IndexSet<(Position, Vector<Position>)>>,
+    expanding: bool,
+    goal: Position,
+}
+
+impl JunctionTable {
+    fn new(map: &GridCharWorld) -> Self {
+        let goal = goal(map);
+        let map = JunctionDistances::new(map);
+        let expanding = true;
+        let mut start_set = IndexSet::new();
+        start_set.insert((START, Vector::new()));
+        let paths_of_length = vec![start_set];
+        Self {map, paths_of_length, expanding, goal}
+    }
+
+    fn max_length(&self) -> usize {
+        self.paths_of_length
+            .iter()
+            .map(|row| row
+                .iter()
+                .filter(|(k,_)| *k == self.goal)
+                .map(|(k,v)| self.map.path_length(*k, v))
+                .max()
+                .unwrap())
+            .max()
+            .unwrap()
+    }
+
+    fn expand(&mut self) {
+        let mut expanding = false;
+        let mut new_level = IndexSet::new();
+        for (candidate, path) in self.paths_of_length[self.paths_of_length.len() - 1].iter() {
+            if *candidate != self.goal {
+                for neighbor in self.map.junctions2neighbors.get(candidate).unwrap().keys() {
+                    if !path.contains(neighbor) {
+                        let mut new_path = path.clone();
+                        new_path.push_back(*candidate);
+                        new_level.insert((*neighbor, new_path));
+                        expanding = true;
+                    }
+                }
+            }
+        }
+        self.expanding = expanding;
+        self.paths_of_length.push(new_level);
+    }
+
+    fn expand_fully(&mut self, show_levels: bool) {
+        while self.expanding {
+            self.expand();
+            if show_levels {
+                println!("Finished level {} ({} nodes)", self.paths_of_length.len(), self.paths_of_length.last().unwrap().len());
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -95,6 +160,15 @@ impl JunctionDistances {
             }
         }
         Self {junctions2neighbors}
+    }
+
+    fn path_length(&self, destination: Position, path: &Vector<Position>) -> usize {
+        let mut total = 0;
+        for (i, p) in path.iter().enumerate() {
+            let next = if i == path.len() {destination} else {path[i + 1]};
+            total += self.junctions2neighbors.get(p).unwrap().get(&next).unwrap();
+        }
+        total
     }
 }
 
