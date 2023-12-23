@@ -28,15 +28,6 @@ fn main() -> anyhow::Result<()> {
                             table.expand_fully(true);
                             println!("Part {part:?}: {}", table.max_goal_level());
                         }
-                        "-cycle" => {
-                            let cycles = CycleChecker::get_cycles(filename)?;
-                            println!("{}", cycles.map);
-                            print!("Cycle points:");
-                            for pt in cycles.cycle_members() {
-                                print!(" {pt}");
-                            }
-                            println!();
-                        }
                         "-j" => {
                             let map = GridCharWorld::from_char_file(filename)?;
                             let junctions = JunctionDistances::new(&map);
@@ -289,38 +280,5 @@ impl LongPathTable {
             })
             .map(|d| d.next_position(*p))
             .filter(|n| !path.contains(n) && self.map.value(*n).map_or(false, |v| v != '#'))
-    }
-}
-
-const CYCLE_CHAR: char = '@';
-
-struct CycleChecker {
-    visited: IndexSet<Position>,
-    map: GridCharWorld,
-}
-
-impl CycleChecker {
-    fn get_cycles(filename: &str) -> anyhow::Result<Self> {
-        let map = GridCharWorld::from_char_file(filename)?;
-        let mut checker = Self {map, visited: IndexSet::new()};
-        checker.find_cycle_members_from(START, None);
-        Ok(checker)
-    }
-
-    fn cycle_members(&self) -> impl Iterator<Item=Position> + '_ {
-        self.map.position_value_iter().filter(|(_,v)| **v == CYCLE_CHAR).map(|(p,_)| *p)
-    }
-
-    fn find_cycle_members_from(&mut self, p: Position, parent: Option<Position>) {
-        self.visited.insert(p);
-        for neighbor in p.manhattan_neighbors().filter(|n| parent.map_or(true, |pt| pt != *n)) {
-            if self.map.value(neighbor).map_or(false, |v| v != '#') {
-                if self.visited.contains(&neighbor) {
-                    self.map.modify(neighbor, |v| *v = CYCLE_CHAR);
-                } else {
-                    self.find_cycle_members_from(neighbor, Some(p));
-                }
-            }
-        }
     }
 }
