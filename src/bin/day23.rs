@@ -52,23 +52,29 @@ fn main() -> anyhow::Result<()> {
                                 println!();
                             }
                         }
+                        "-showfull" => {
+                            let map = GridCharWorld::from_char_file(filename)?;
+                            let mut table = JunctionTable::new(&map);
+                            table.expand_fully(true);
+                            for (i, row) in table.paths_of_length.iter().enumerate() {
+                                println!("Row {i}");
+                                for (p, v) in row.iter() {
+                                    print!("\t{p}:");
+                                    for n in v.iter() {
+                                        print!(" {n}");
+                                    }
+                                    println!();
+                                }
+                            }
+                            println!("goal: {}", table.goal);
+                            println!("Part {part:?}: {}", table.max_length());
+                        }
                         _ => println!("Unrecognized option"),
                     }
                 } else {
                     let map = GridCharWorld::from_char_file(filename)?;
                     let mut table = JunctionTable::new(&map);
                     table.expand_fully(true);
-                    for (i, row) in table.paths_of_length.iter().enumerate() {
-                        println!("Row {i}");
-                        for (p, v) in row.iter() {
-                            print!("\t{p}:");
-                            for n in v.iter() {
-                                print!(" {n}");
-                            }
-                            println!();
-                        }
-                    }
-                    println!("goal: {}", table.goal);
                     println!("Part {part:?}: {}", table.max_length());
                 }
             }
