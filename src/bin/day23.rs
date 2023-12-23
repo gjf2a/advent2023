@@ -58,7 +58,17 @@ fn main() -> anyhow::Result<()> {
                     let map = GridCharWorld::from_char_file(filename)?;
                     let mut table = JunctionTable::new(&map);
                     table.expand_fully(true);
-                    println!("{table:?}");
+                    for (i, row) in table.paths_of_length.iter().enumerate() {
+                        println!("Row {i}");
+                        for (p, v) in row.iter() {
+                            print!("\t{p}:");
+                            for n in v.iter() {
+                                print!(" {n}");
+                            }
+                            println!();
+                        }
+                    }
+                    println!("goal: {}", table.goal);
                     println!("Part {part:?}: {}", table.max_length());
                 }
             }
@@ -90,12 +100,11 @@ impl JunctionTable {
     fn max_length(&self) -> usize {
         self.paths_of_length
             .iter()
-            .map(|row| row
+            .filter_map(|row| row
                 .iter()
                 .filter(|(k,_)| *k == self.goal)
                 .map(|(k,v)| self.map.path_length(*k, v))
-                .max()
-                .unwrap())
+                .max())
             .max()
             .unwrap()
     }
@@ -165,7 +174,7 @@ impl JunctionDistances {
     fn path_length(&self, destination: Position, path: &Vector<Position>) -> usize {
         let mut total = 0;
         for (i, p) in path.iter().enumerate() {
-            let next = if i == path.len() {destination} else {path[i + 1]};
+            let next = if i == path.len() - 1 {destination} else {path[i + 1]};
             total += self.junctions2neighbors.get(p).unwrap().get(&next).unwrap();
         }
         total
