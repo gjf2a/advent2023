@@ -81,7 +81,7 @@ impl CycleChecker {
 
 struct LongPathTable {
     map: GridCharWorld,
-    destinations_at_length: Vec<Vector<Position>>,
+    destinations_at_length: Vec<Vector<(Position, Option<Position>)>>,
     paths_at_length: Vec<Vec<Vector<Position>>>,
     expanding: bool,
     goal: Position,
@@ -92,7 +92,7 @@ impl LongPathTable {
     fn new(filename: &str, hike_up_slope: bool) -> anyhow::Result<Self> {
         let map = GridCharWorld::from_char_file(filename)?;
         let mut level_0 = Vector::new();
-        level_0.push_back(Position {row: 0, col: 1});
+        level_0.push_back((Position {row: 0, col: 1}, None));
         let destinations_at_length = vec![level_0];
         let paths_at_length = vec![vec![Vector::new()]];
         let goal = goal(&map);
@@ -116,17 +116,17 @@ impl LongPathTable {
         let mut new_destinations = Vector::new();
         let mut new_paths = vec![];
         for i in 0..self.destinations_at_length[self.last_level()].len() {
-            let candidate = self.destinations_at_length[self.last_level()][i];
+            let (candidate, _) = self.destinations_at_length[self.last_level()][i];
             if candidate != self.goal {
                 let path = &self.paths_at_length[self.last_level()][i];
                 for neighbor in self.traversible_neighbors(&candidate, path) {
-                    //if !new_destinations.contains(&neighbor) {
-                        new_destinations.push_back(neighbor);
+                    if !new_destinations.contains(&(neighbor, Some(candidate))) {
+                        new_destinations.push_back((neighbor, Some(candidate)));
                         let mut new_path = path.clone();
                         new_path.push_back(candidate);
                         new_paths.push(new_path);
                         expanding = true;
-                    //}
+                    }
                 }
             }
         }
@@ -150,7 +150,7 @@ impl LongPathTable {
             .find(|i| {
                 self.destinations_at_length[*i]
                     .iter()
-                    .any(|p| *p == self.goal)
+                    .any(|(p,_)| *p == self.goal)
             })
             .unwrap()
     }
