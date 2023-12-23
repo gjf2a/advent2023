@@ -1,5 +1,6 @@
 use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
 use enum_iterator::all;
+use im::Vector;
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
@@ -7,14 +8,14 @@ fn main() -> anyhow::Result<()> {
         let mut table = LongPathTable::new(filename, part == Part::Two)?;
         match part {
             Part::One => {
-                table.expand_fully();
+                table.expand_fully(options.len() > 0);
                 println!("Part {part:?}: {}", table.max_goal_level());
             }
             Part::Two => {
                 if options.len() > 0 {
                     match options[0].as_str() {
                         "-bad" => {
-                            table.expand_fully();
+                            table.expand_fully(true);
                             println!("Part {part:?}: {}", table.max_goal_level());
                         }
                         "-cycle" => {
@@ -80,7 +81,8 @@ impl CycleChecker {
 
 struct LongPathTable {
     map: GridCharWorld,
-    paths_of_length: Vec<Vec<(Position, IndexSet<Position>)>>,
+    destinations_at_length: Vec<Vector<Position>>,
+    paths_at_length: Vec<Vec<Vector<Position>>>,
     expanding: bool,
     goal: Position,
     hike_up_slope: bool,
@@ -89,47 +91,66 @@ struct LongPathTable {
 impl LongPathTable {
     fn new(filename: &str, hike_up_slope: bool) -> anyhow::Result<Self> {
         let map = GridCharWorld::from_char_file(filename)?;
-        let paths_of_length = vec![vec![(Position { row: 0, col: 1 }, IndexSet::new())]];
+        let mut level_0 = Vector::new();
+        level_0.push_back(Position {row: 0, col: 1});
+        let destinations_at_length = vec![level_0];
+        let paths_at_length = vec![vec![Vector::new()]];
         let goal = goal(&map);
         Ok(Self {
             map,
-            paths_of_length,
+            destinations_at_length,
+            paths_at_length,
             expanding: true,
             goal,
             hike_up_slope,
         })
     }
 
+    fn last_level(&self) -> usize {
+        assert_eq!(self.destinations_at_length.len(), self.paths_at_length.len());
+        self.destinations_at_length.len() - 1
+    }
+
     fn expand(&mut self) {
         let mut expanding = false;
-        let mut new_level = vec![];
-        for (candidate, path) in self.paths_of_length[self.paths_of_length.len() - 1].iter() {
-            if *candidate != self.goal {
-                for neighbor in self.traversible_neighbors(candidate, path) {
-                    let mut new_path = path.clone();
-                    new_path.insert(*candidate);
-                    new_level.push((neighbor, new_path));
-                    expanding = true;
+        let mut new_destinations = Vector::new();
+        let mut new_paths = vec![];
+        for i in 0..self.destinations_at_length[self.last_level()].len() {
+            let candidate = self.destinations_at_length[self.last_level()][i];
+            if candidate != self.goal {
+                let path = &self.paths_at_length[self.last_level()][i];
+                for neighbor in self.traversible_neighbors(&candidate, path) {
+                    //if !new_destinations.contains(&neighbor) {
+                        new_destinations.push_back(neighbor);
+                        let mut new_path = path.clone();
+                        new_path.push_back(candidate);
+                        new_paths.push(new_path);
+                        expanding = true;
+                    //}
                 }
             }
         }
         self.expanding = expanding;
-        self.paths_of_length.push(new_level);
+        self.destinations_at_length.push(new_destinations);
+        self.paths_at_length.push(new_paths);
     }
 
-    fn expand_fully(&mut self) {
+    fn expand_fully(&mut self, show_levels: bool) {
         while self.expanding {
-            self.expand()
+            self.expand();
+            if show_levels {
+                println!("Finished level {} (/{}) ({} nodes)", self.paths_at_length.len(), self.map.width() * self.map.height(), self.paths_at_length[self.last_level()].len());
+            }
         }
     }
 
     fn max_goal_level(&self) -> usize {
-        (0..self.paths_of_length.len())
+        (0..self.destinations_at_length.len())
             .rev()
             .find(|i| {
-                self.paths_of_length[*i]
+                self.destinations_at_length[*i]
                     .iter()
-                    .any(|(p, _)| *p == self.goal)
+                    .any(|p| *p == self.goal)
             })
             .unwrap()
     }
@@ -137,7 +158,7 @@ impl LongPathTable {
     fn traversible_neighbors<'a>(
         &'a self,
         p: &'a Position,
-        path: &'a IndexSet<Position>,
+        path: &'a Vector<Position>,
     ) -> impl Iterator<Item = Position> + 'a {
         all::<ManhattanDir>()
             .filter(|d| {
