@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
                         table.expand_once(&garden);
                         //println!("{table:?} {}", table.current_reachable());
                     }
-                    println!("{table:?}");
+                    println!("{:?}", table.donut_holes);
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
