@@ -7,6 +7,7 @@ fn main() -> anyhow::Result<()> {
         let mut table = LongPathTable::new(filename)?;
         table.expand_fully();
         println!("Part {part:?}: {}", table.max_goal_level());
+        //println!("paths? {:?}", table.paths_of_length);
         Ok(())
     })
 }
@@ -67,6 +68,6 @@ impl LongPathTable {
             }
         })
         .map(|d| d.next_position(*p))
-        .filter(|n| !path.contains(n) && self.map.value(*n).unwrap() != '#')
+        .filter(|n| !path.contains(n) && self.map.value(*n).map_or(false, |v| v != '#'))
     }
 }
