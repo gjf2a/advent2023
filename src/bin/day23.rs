@@ -1,13 +1,12 @@
-use advent_code_lib::{chooser_main, GridCharWorld, Position, ManhattanDir, DirType};
+use advent_code_lib::{chooser_main, GridCharWorld, Position, ManhattanDir, DirType, Part};
 use enum_iterator::all;
 use indexmap::IndexSet;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
-        let mut table = LongPathTable::new(filename)?;
+        let mut table = LongPathTable::new(filename, part == Part::Two)?;
         table.expand_fully();
         println!("Part {part:?}: {}", table.max_goal_level());
-        //println!("paths? {:?}", table.paths_of_length);
         Ok(())
     })
 }
@@ -17,15 +16,16 @@ struct LongPathTable {
     paths_of_length: Vec<Vec<(Position, IndexSet<Position>)>>,
     expanding: bool,
     goal: Position,
+    hike_up_slope: bool,
 }
 
 
 impl LongPathTable {
-    fn new(filename: &str) -> anyhow::Result<Self> {
+    fn new(filename: &str, hike_up_slope: bool) -> anyhow::Result<Self> {
         let map = GridCharWorld::from_char_file(filename)?;
         let paths_of_length = vec![vec![(Position {row: 0, col: 1}, IndexSet::new())]];
         let goal = Position {row: map.height() as isize - 1, col: map.width() as isize - 2};
-        Ok(Self {map, paths_of_length, expanding: true, goal})
+        Ok(Self {map, paths_of_length, expanding: true, goal, hike_up_slope})
     }
 
     fn expand(&mut self) {
@@ -58,6 +58,7 @@ impl LongPathTable {
     fn traversible_neighbors<'a>(&'a self, p: &'a Position, path: &'a IndexSet<Position>) -> impl Iterator<Item=Position> + 'a {
         all::<ManhattanDir>()
         .filter(|d| {
+            self.hike_up_slope || 
             match self.map.value(*p).unwrap() {
                 '>' => *d == ManhattanDir::E,
                 '<' => *d == ManhattanDir::W,
