@@ -1,10 +1,10 @@
 use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
-use bare_metal_modulo::{ModNum, MNum};
+use bare_metal_modulo::{MNum, ModNum};
 use enum_iterator::all;
 use im::Vector;
-use indexmap::{IndexSet, IndexMap};
+use indexmap::{IndexMap, IndexSet};
 
-const START: Position = Position {row: 0, col: 1};
+const START: Position = Position { row: 0, col: 1 };
 
 fn goal(map: &GridCharWorld) -> Position {
     Position {
@@ -87,17 +87,23 @@ impl JunctionTable {
         let mut start_set = IndexSet::new();
         start_set.insert((START, Vector::new()));
         let paths_of_length = vec![start_set];
-        Self {map, paths_of_length, expanding, goal}
+        Self {
+            map,
+            paths_of_length,
+            expanding,
+            goal,
+        }
     }
 
     fn max_length(&self) -> usize {
         self.paths_of_length
             .iter()
-            .filter_map(|row| row
-                .iter()
-                .filter(|(k,_)| *k == self.goal)
-                .map(|(k,v)| self.map.path_length(*k, v))
-                .max())
+            .filter_map(|row| {
+                row.iter()
+                    .filter(|(k, _)| *k == self.goal)
+                    .map(|(k, v)| self.map.path_length(*k, v))
+                    .max()
+            })
             .max()
             .unwrap()
     }
@@ -125,7 +131,11 @@ impl JunctionTable {
         while self.expanding {
             self.expand();
             if show_levels {
-                println!("Finished level {} ({} nodes)", self.paths_of_length.len(), self.paths_of_length.last().unwrap().len());
+                println!(
+                    "Finished level {} ({} nodes)",
+                    self.paths_of_length.len(),
+                    self.paths_of_length.last().unwrap().len()
+                );
             }
         }
     }
@@ -133,7 +143,7 @@ impl JunctionTable {
 
 #[derive(Debug)]
 struct JunctionDistances {
-    junctions2neighbors: IndexMap<Position,IndexMap<Position, usize>>
+    junctions2neighbors: IndexMap<Position, IndexMap<Position, usize>>,
 }
 
 impl JunctionDistances {
@@ -145,36 +155,67 @@ impl JunctionDistances {
         junctions2neighbors.insert(START, IndexMap::new());
         junctions2neighbors.insert(goal, IndexMap::new());
         let mut visited = IndexSet::new();
-        while let Some((node, parent, last_junction, last_junction_distance)) = open_list.pop_front() {
+        while let Some((node, parent, last_junction, last_junction_distance)) =
+            open_list.pop_front()
+        {
             if !visited.contains(&(node, parent, last_junction, last_junction_distance)) {
                 visited.insert((node, parent, last_junction, last_junction_distance));
-                let neighbors = node.manhattan_neighbors().filter(|n| *n != parent && map.value(*n).map_or(false, |v| v != '#')).collect::<Vec<_>>();
+                let neighbors = node
+                    .manhattan_neighbors()
+                    .filter(|n| *n != parent && map.value(*n).map_or(false, |v| v != '#'))
+                    .collect::<Vec<_>>();
                 if neighbors.contains(&goal) {
-                    update_both(last_junction_distance + 1, last_junction, goal, &mut junctions2neighbors);
+                    update_both(
+                        last_junction_distance + 1,
+                        last_junction,
+                        goal,
+                        &mut junctions2neighbors,
+                    );
                 } else if neighbors.len() == 1 {
-                    open_list.push_back((neighbors[0], node, last_junction, last_junction_distance + 1));
+                    open_list.push_back((
+                        neighbors[0],
+                        node,
+                        last_junction,
+                        last_junction_distance + 1,
+                    ));
                 } else if neighbors.len() > 1 {
-                    update_both(last_junction_distance, last_junction, node, &mut junctions2neighbors);
+                    update_both(
+                        last_junction_distance,
+                        last_junction,
+                        node,
+                        &mut junctions2neighbors,
+                    );
                     for neighbor in neighbors {
                         open_list.push_back((neighbor, node, node, 1));
                     }
                 }
             }
         }
-        Self {junctions2neighbors}
+        Self {
+            junctions2neighbors,
+        }
     }
 
     fn path_length(&self, destination: Position, path: &Vector<Position>) -> usize {
         let mut total = 0;
         for (i, p) in path.iter().enumerate() {
-            let next = if i == path.len() - 1 {destination} else {path[i + 1]};
+            let next = if i == path.len() - 1 {
+                destination
+            } else {
+                path[i + 1]
+            };
             total += self.junctions2neighbors.get(p).unwrap().get(&next).unwrap();
         }
         total
     }
 }
 
-fn update_both(distance: usize, p1: Position, p2: Position, junctions2neighbors: &mut IndexMap<Position,IndexMap<Position,usize>>) {
+fn update_both(
+    distance: usize,
+    p1: Position,
+    p2: Position,
+    junctions2neighbors: &mut IndexMap<Position, IndexMap<Position, usize>>,
+) {
     let ps = [p1, p2];
     for p in ps.iter() {
         if !junctions2neighbors.contains_key(p) {
@@ -183,7 +224,11 @@ fn update_both(distance: usize, p1: Position, p2: Position, junctions2neighbors:
     }
 
     for i in ModNum::new(0, ps.len()).iter() {
-        update_bigger(distance, ps[i.a()], junctions2neighbors.get_mut(&ps[(i + 1).a()]).unwrap());
+        update_bigger(
+            distance,
+            ps[i.a()],
+            junctions2neighbors.get_mut(&ps[(i + 1).a()]).unwrap(),
+        );
     }
 }
 
@@ -245,7 +290,12 @@ impl LongPathTable {
         while self.expanding {
             self.expand();
             if show_levels {
-                println!("Finished level {} (/{}) ({} nodes)", self.paths_of_length.len(), self.map.width() * self.map.height(), self.paths_of_length.last().unwrap().len());
+                println!(
+                    "Finished level {} (/{}) ({} nodes)",
+                    self.paths_of_length.len(),
+                    self.map.width() * self.map.height(),
+                    self.paths_of_length.last().unwrap().len()
+                );
             }
         }
     }
