@@ -49,11 +49,11 @@ fn main() -> anyhow::Result<()> {
                     let mut table = ExpandingDonut::new(start, &garden);
                     while table.expansions < iterations {
                         table.expand_once();
-                        println!("{} ({}), {:?}", table.expansions, table.frontier[0].len() + table.frontier[1].len(), table.donut_holes);
-                        table.show_garden_view();
-                        //println!("{table:?} {}", table.current_reachable());
+                        //println!("{} ({})", table.expansions, table.frontier[0].len() + table.frontier[1].len());
+                        //table.show_garden_view();
                     }
-                    println!("{:?}", table.donut_holes);
+                    //println!("{:?}", table.donut_holes);
+                    //println!("generators: {}/{} + {}/{}", table.donut_holes[0].generators.len(), table.donut_holes[0].perimeter(), table.donut_holes[1].generators.len(), table.donut_holes[1].perimeter());
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
@@ -208,8 +208,7 @@ impl ExpandingDonut {
                 self.frontier[target].insert(p);
             }
         }
-        if (1..=3).all(|offset| self.ring_complete(self.ring(0, offset))) {
-        //if self.ring_complete(self.ring(0, 1)) {
+        if self.ring_complete(self.ring(0, 1)) {
             for i in 0..self.donut_holes.len() {
                 self.donut_holes[i].generators = vec![];
                 let mut counts = 0;
@@ -238,7 +237,15 @@ impl ExpandingDonut {
     }
 
     fn ring_complete(&self, mut ring: RingIterator) -> bool {
-        ring.all(|r| is_blocked(&self.garden, r) || self.frontier.iter().any(|f| f.contains(&r)))
+        /*for r in ring {
+            if !(is_blocked(&self.garden, r) || self.frontier[0].contains(&r) || self.frontier[1].contains(&r)) {
+                return false;
+            }
+            print!("r: {r} ");
+        }
+        println!("complete!");
+        true*/
+        ring.all(|r| is_blocked(&self.garden, bounded(r, &self.garden)) || self.frontier.iter().any(|f| f.contains(&r)))
     }
 
     fn show_garden_view(&self) {
@@ -271,6 +278,10 @@ impl DonutHole {
             count: 0,
             generators: vec![]
         }
+    }
+
+    fn perimeter(&self) -> isize {
+        2 * (self.width() + self.height() - 2)
     }
 
     fn width(&self) -> isize {
