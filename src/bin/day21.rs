@@ -1,10 +1,8 @@
-use std::cmp::max;
-
 use advent_code_lib::{chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position};
 use bare_metal_modulo::{MNum, ModNumC};
 use enum_iterator::all;
 use im::OrdSet;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use num_integer::Integer;
 
 /*
@@ -44,9 +42,38 @@ fn bounded(p: Position, garden: &GridCharWorld) -> Position {
     }
 }
 
+struct RegionVisitRecord {
+    received: IndexSet<Position>,
+    pending: IndexMap<ManhattanDir,IndexSet<Position>>
+}
+
+impl RegionVisitRecord {
+    fn new() -> Self {
+        let pending = all::<ManhattanDir>().map(|d| (d, IndexSet::new())).collect();
+        Self {pending, received: IndexSet::new()}
+    }
+
+    fn regions_visited(&self) -> usize {
+        self.received.len()
+    }
+    
+    fn receive_visit_from(&mut self, region: Position) {
+        if !self.received.contains(&region) {
+            self.received.insert(region);
+            for v in self.pending.values_mut() {
+                v.insert(region);
+            }
+        }
+    }
+
+    fn wipe_pending(&mut self, dir: ManhattanDir) {
+        self.pending.insert(dir, IndexSet::new());
+    }
+}
+
 struct UnboundedTable {
     garden: GridCharWorld,
-    table: [IndexMap<Position, OrdSet<Position>>; 2],
+    table: [IndexMap<Position, RegionVisitRecord>; 2],
     current: ModNumC<usize, 2>,
     wrap: bool,
 }
@@ -56,12 +83,12 @@ impl UnboundedTable {
         let mut table = [IndexMap::new(), IndexMap::new()];
         for i in 0..table.len() {
             for (p, v) in garden.position_value_iter().filter(|(_, v)| **v != '#') {
-                table[i].insert(*p, OrdSet::new());
+                table[i].insert(*p, RegionVisitRecord::new());
                 if *v == 'S' && i == 0 {
                     table[0]
                         .get_mut(p)
                         .unwrap()
-                        .insert(Position { row: 0, col: 0 });
+                        .receive_visit_from(Position { row: 0, col: 0 });
                 }
             }
         }
@@ -76,7 +103,7 @@ impl UnboundedTable {
     fn current_reachable(&self) -> u128 {
         self.table[self.current.a()]
             .iter()
-            .map(|(_, sources)| sources.len() as u128)
+            .map(|(_, sources)| sources.regions_visited() as u128)
             .sum()
     }
 
@@ -87,6 +114,7 @@ impl UnboundedTable {
             .keys()
             .map(|k| (*k, OrdSet::<Position>::new()))
             .collect::<IndexMap<_, _>>();
+        let mut removals = vec![];
         for p in self.table[target].keys() {
             for dir in all::<ManhattanDir>() {
                 let neighbor = dir.next_position(*p);
@@ -94,8 +122,9 @@ impl UnboundedTable {
                     Some(v) => {
                         if v != '#' {
                             if let Some(sources) = self.table[source].get(&neighbor) {
-                                for src in sources.iter() {
+                                for src in sources.pending.get(&dir.inverse()).unwrap().iter() {
                                     insertions.get_mut(p).unwrap().insert(*src);
+                                    removals.push((neighbor, dir.inverse()));
                                 }
                             }
                         }
@@ -105,11 +134,12 @@ impl UnboundedTable {
                         let v = self.garden.value(neighbor).unwrap();
                         if self.wrap && v != '#' {
                             if let Some(sources) = self.table[source].get(&neighbor) {
-                                for src in sources.iter() {
+                                for src in sources.pending.get(&dir.inverse()).unwrap().iter() {
                                     insertions
                                         .get_mut(p)
                                         .unwrap()
                                         .insert(dir.inverse().next_position(*src));
+                                    removals.push((neighbor, dir.inverse()));
                                 }
                             }
                         }
@@ -119,8 +149,11 @@ impl UnboundedTable {
         }
         for (p, sources) in insertions {
             for src in sources.iter() {
-                self.table[target].get_mut(&p).unwrap().insert(*src);
+                self.table[target].get_mut(&p).unwrap().receive_visit_from(*src);
             }
+        }
+        for (p, dir) in removals {
+            self.table[source].get_mut(&p).unwrap().wipe_pending(dir);
         }
         self.current += 1;
     }
