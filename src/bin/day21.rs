@@ -1,8 +1,7 @@
 use advent_code_lib::{
-    chooser_main, DirType, GridCharWorld, ManhattanDir, Part, Position, RingIterator,
+    chooser_main, GridCharWorld, Part, Position, RingIterator,
 };
 use bare_metal_modulo::{MNum, ModNumC};
-use enum_iterator::all;
 use indexmap::IndexSet;
 use num_integer::Integer;
 
@@ -38,15 +37,20 @@ fn main() -> anyhow::Result<()> {
                     );
                 } else {
                     let ignored_interior = find_ignored_interior(start, &garden);
+                    let mut garden = garden.clone();
+                    for ignored in ignored_interior {
+                        garden.modify(ignored, |v| *v = '#');
+                    }
                     let iterations = if options.len() > 0 {
                         options[0].parse::<usize>().unwrap()
                     } else {
                         26501365
                     };
-                    let mut table = ExpandingDonut::new(start, &garden, ignored_interior);
-                    println!("{table:?}");
+                    let mut table = ExpandingDonut::new(start, &garden);
                     while table.expansions < iterations {
-                        table.expand_once(&garden);
+                        table.expand_once();
+                        println!("{} ({}), {:?}", table.expansions, table.frontier[0].len() + table.frontier[1].len(), table.donut_holes);
+                        table.show_garden_view();
                         //println!("{table:?} {}", table.current_reachable());
                     }
                     println!("{:?}", table.donut_holes);
@@ -149,11 +153,11 @@ impl AlternationTable {
 
 #[derive(Debug)]
 struct ExpandingDonut {
+    garden: GridCharWorld,
     donut_holes: [DonutHole; 2],
     frontier: [IndexSet<Position>; 2],
     current: ModNumC<usize, 2>,
     expansions: usize,
-    ignored_interior: IndexSet<Position>,
 }
 
 #[derive(Debug)]
@@ -163,22 +167,24 @@ struct DonutHole {
     min_y: isize,
     max_y: isize,
     count: u128,
+    generators: Vec<Position>,
 }
 
 impl ExpandingDonut {
-    fn new(start: Position, garden: &GridCharWorld, ignored_interior: IndexSet<Position>) -> Self {
+    fn new(start: Position, garden: &GridCharWorld) -> Self {
         let mut donut_holes = [DonutHole::new(start), DonutHole::new(start)];
         donut_holes[0].count = 1;
+        donut_holes[0].generators.push(start);
         let frontier = start
             .manhattan_neighbors()
             .filter(|n| !is_blocked(garden, *n))
             .collect();
         Self {
+            garden: garden.clone(),
             donut_holes,
             expansions: 1,
             current: ModNumC::new(1),
             frontier: [IndexSet::new(), frontier],
-            ignored_interior,
         }
     }
 
@@ -186,13 +192,13 @@ impl ExpandingDonut {
         self.frontier[self.current.a()].len() as u128 + self.donut_holes[self.current.a()].count
     }
 
-    fn expand_once(&mut self, garden: &GridCharWorld) {
+    fn expand_once(&mut self) {
         let source = self.current.a();
         let target = (self.current + 1).a();
         let mut insertions = vec![];
-        for p in self.frontier[source].iter() {
+        for p in self.frontier[source].iter()/* .chain(self.donut_holes[source].generators.iter())*/ {
             for neighbor in p.manhattan_neighbors() {
-                if !is_blocked(garden, bounded(neighbor, garden)) {
+                if !is_blocked(&self.garden, bounded(neighbor, &self.garden)) {
                     insertions.push(neighbor);
                 }
             }
@@ -202,13 +208,15 @@ impl ExpandingDonut {
                 self.frontier[target].insert(p);
             }
         }
-        if self.ring_complete(garden, self.ring(1)) && self.ring_complete(garden, self.ring(2)) {
+        if self.ring_complete(&self.garden, self.ring(1)) {
             for i in 0..self.donut_holes.len() {
+                self.donut_holes[i].generators = vec![];
                 let mut counts = 0;
                 for p in self.ring(1) {
                     if self.frontier[i].contains(&p) {
                         counts += 1;
                         self.frontier[i].remove(&p);
+                        self.donut_holes[i].generators.push(p);
                     }
                 }
                 self.donut_holes[i].expand(counts);
@@ -229,11 +237,23 @@ impl ExpandingDonut {
     }
 
     fn ring_complete(&self, garden: &GridCharWorld, mut ring: RingIterator) -> bool {
-        ring.all(|r| {
-            self.ignored_interior.contains(&bounded(r, garden))
-                || is_blocked(garden, r)
-                || self.frontier.iter().any(|f| f.contains(&r))
-        })
+        ring.all(|r| is_blocked(garden, r) || self.frontier.iter().any(|f| f.contains(&r)))
+    }
+
+    fn show_garden_view(&self) {
+        let mut garden_view = self.garden.clone();
+        for i in 0..2 {
+            println!("donut {i}: {:?}",self.donut_holes[i]);
+            for row in self.donut_holes[i].min_y..=self.donut_holes[i].max_y {
+                for col in self.donut_holes[i].min_x..=self.donut_holes[i].max_x {
+                    garden_view.modify(Position {row, col}, |v| *v = 'H');
+                }
+            }
+            for p in self.frontier[i].iter() {
+                garden_view.modify(*p, |v| *v = (i as u8 + '0' as u8) as char);
+            }
+        }
+        println!("{garden_view}");
     }
 }
 
@@ -245,6 +265,7 @@ impl DonutHole {
             max_x: start.col,
             max_y: start.row,
             count: 0,
+            generators: vec![]
         }
     }
 
@@ -266,45 +287,6 @@ impl DonutHole {
 
     fn contains(&self, p: Position) -> bool {
         self.min_x <= p.col && p.col <= self.max_x && self.min_y <= p.row && p.row <= self.max_y
-    }
-}
-
-struct InfiniteTable {
-    table: [IndexSet<Position>; 2],
-    current: ModNumC<usize, 2>,
-}
-
-impl InfiniteTable {
-    fn new(start: Position) -> Self {
-        let mut odd = IndexSet::new();
-        odd.insert(start);
-        Self {
-            table: [odd, IndexSet::new()],
-            current: ModNumC::new(0),
-        }
-    }
-
-    fn current_reachable(&self) -> u128 {
-        self.table[self.current.a()].len() as u128
-    }
-
-    fn expand_once(&mut self, garden: &GridCharWorld) {
-        let source = self.current.a();
-        let target = (self.current + 1).a();
-        let mut insertions = IndexSet::new();
-        for p in self.table[source].iter() {
-            for neighbor in p.manhattan_neighbors() {
-                if let Some(content) = garden.value(bounded(neighbor, garden)) {
-                    if content != '#' {
-                        insertions.insert(neighbor);
-                    }
-                }
-            }
-        }
-        for p in insertions {
-            self.table[target].insert(p);
-        }
-        self.current += 1;
     }
 }
 
