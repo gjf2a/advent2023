@@ -49,11 +49,9 @@ fn main() -> anyhow::Result<()> {
                     let mut table = ExpandingDonut::new(start, &garden);
                     while table.expansions < iterations {
                         table.expand_once();
-                        //println!("{} ({})", table.expansions, table.frontier[0].len() + table.frontier[1].len());
+                        println!("{} reachable: {} (frontier: {} + donut: {})", table.expansions, table.current_reachable(), table.frontier[0].len() + table.frontier[1].len(), table.donut_holes[0].width() * table.donut_holes[0].height());
                         //table.show_garden_view();
                     }
-                    //println!("{:?}", table.donut_holes);
-                    //println!("generators: {}/{} + {}/{}", table.donut_holes[0].generators.len(), table.donut_holes[0].perimeter(), table.donut_holes[1].generators.len(), table.donut_holes[1].perimeter());
                     println!("Part {part:?}: {}", table.current_reachable());
                 }
             }
