@@ -196,7 +196,7 @@ impl ExpandingDonut {
         let source = self.current.a();
         let target = (self.current + 1).a();
         let mut insertions = vec![];
-        for p in self.frontier[source].iter()/* .chain(self.donut_holes[source].generators.iter())*/ {
+        for p in self.frontier[source].iter().chain(self.donut_holes[source].generators.iter()) {
             for neighbor in p.manhattan_neighbors() {
                 if !is_blocked(&self.garden, bounded(neighbor, &self.garden)) {
                     insertions.push(neighbor);
@@ -208,11 +208,12 @@ impl ExpandingDonut {
                 self.frontier[target].insert(p);
             }
         }
-        if self.ring_complete(&self.garden, self.ring(1)) {
+        if (1..=3).all(|offset| self.ring_complete(self.ring(0, offset))) {
+        //if self.ring_complete(self.ring(0, 1)) {
             for i in 0..self.donut_holes.len() {
                 self.donut_holes[i].generators = vec![];
                 let mut counts = 0;
-                for p in self.ring(1) {
+                for p in self.ring(i, 1) {
                     if self.frontier[i].contains(&p) {
                         counts += 1;
                         self.frontier[i].remove(&p);
@@ -226,18 +227,18 @@ impl ExpandingDonut {
         self.expansions += 1;
     }
 
-    fn ring(&self, offset: isize) -> RingIterator {
+    fn ring(&self, donut: usize, offset: isize) -> RingIterator {
         let start = Position {
-            col: self.donut_holes[0].min_x - offset,
-            row: self.donut_holes[0].min_y - offset,
+            col: self.donut_holes[donut].min_x - offset,
+            row: self.donut_holes[donut].min_y - offset,
         };
-        let width = self.donut_holes[0].width() + 2 * offset;
-        let height = self.donut_holes[0].height() + 2 * offset;
+        let width = self.donut_holes[donut].width() + 2 * offset;
+        let height = self.donut_holes[donut].height() + 2 * offset;
         RingIterator::new(start, width, height)
     }
 
-    fn ring_complete(&self, garden: &GridCharWorld, mut ring: RingIterator) -> bool {
-        ring.all(|r| is_blocked(garden, r) || self.frontier.iter().any(|f| f.contains(&r)))
+    fn ring_complete(&self, mut ring: RingIterator) -> bool {
+        ring.all(|r| is_blocked(&self.garden, r) || self.frontier.iter().any(|f| f.contains(&r)))
     }
 
     fn show_garden_view(&self) {
@@ -246,7 +247,10 @@ impl ExpandingDonut {
             println!("donut {i}: {:?}",self.donut_holes[i]);
             for row in self.donut_holes[i].min_y..=self.donut_holes[i].max_y {
                 for col in self.donut_holes[i].min_x..=self.donut_holes[i].max_x {
-                    garden_view.modify(Position {row, col}, |v| *v = 'H');
+                    let p = Position {row, col};
+                    if !is_blocked(&self.garden, bounded(p, &self.garden)) {
+                        garden_view.modify(p, |v| *v = 'H');
+                    }
                 }
             }
             for p in self.frontier[i].iter() {
