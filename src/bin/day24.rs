@@ -4,38 +4,13 @@ use advent_code_lib::{all_lines, chooser_main, Part, Point};
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
-        let points = all_lines(filename)?
-            .map(|line| {
-                let mut parts = line.split('@');
-                let pos = parts
-                    .next()
-                    .unwrap()
-                    .trim()
-                    .parse::<Point<i128, 3>>()
-                    .unwrap();
-                let vec = parts
-                    .next()
-                    .unwrap()
-                    .trim()
-                    .parse::<Point<i128, 3>>()
-                    .unwrap();
-                (pos, vec)
-            })
-            .collect::<Vec<_>>();
+        let points = points_from(filename)?;
 
         match part {
             Part::One => {
-                let points = points
-                    .iter()
-                    .map(|(p, v)| {
-                        (
-                            Point::<i128, 2>::from_iter(p.values().take(2)),
-                            Point::<i128, 2>::from_iter(v.values().take(2)),
-                        )
-                    })
-                    .collect::<Vec<_>>();
+                let points = planeify(&points);
                 view_one(&points, &options);
-                let (min, max) = if filename.contains("ex") {(7, 27)} else {(200000000000000, 400000000000000)};
+                let (min, max) = part_1_bounds(filename);
                 let mut num_intersected = 0;
                 for i in 0..points.len() {
                     for j in (i + 1)..points.len() {
@@ -59,6 +34,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 type Hailstone2d = (Point<i128, 2>, Point<i128, 2>);
+type Hailstone3d = (Point<i128, 3>, Point<i128, 3>);
 
 fn within(intersection: Option<(f64, f64)>, min: i128, max: i128) -> Option<(f64, f64)> {
     let min = min as f64;
@@ -156,5 +132,46 @@ fn view_one(points: &Vec<Hailstone2d>, options: &[String]) {
                 }
             }
         }
+    }
+}
+
+fn points_from(filename: &str) -> anyhow::Result<Vec<Hailstone3d>> {
+    Ok(all_lines(filename)?
+        .map(|line| {
+            let mut parts = line.split('@');
+            let pos = parts
+                .next()
+                .unwrap()
+                .trim()
+                .parse::<Point<i128, 3>>()
+                .unwrap();
+            let vec = parts
+                .next()
+                .unwrap()
+                .trim()
+                .parse::<Point<i128, 3>>()
+                .unwrap();
+            (pos, vec)
+        })
+        .collect::<Vec<_>>())
+}
+
+fn planeify(points: &Vec<Hailstone3d>) -> Vec<Hailstone2d> {
+    points
+        .iter()
+        .map(|(p, v)| {
+            (
+                Point::<i128, 2>::from_iter(p.values().take(2)),
+                Point::<i128, 2>::from_iter(v.values().take(2)),
+            )
+        })
+        .collect::<Vec<_>>()
+}
+
+fn part_1_bounds(filename: &str) -> (i128,i128) {
+    if filename.contains("ex") {
+        (7, 27)
+    } else {
+        (200000000000000, 400000000000000)
     }
 }
