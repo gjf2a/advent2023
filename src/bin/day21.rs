@@ -26,8 +26,11 @@ fn main() -> anyhow::Result<()> {
         };
 
         let mut table = UnboundedTable::new(&garden, wrap);
-        for _ in 0..iterations {
+        for i in 0..iterations {
             table.expand_once();
+            if i % 100 == 0 {
+                println!("{i}: {}", table.current_reachable());
+            }
         }
         println!("Part {part:?}: {}", table.current_reachable());
 
