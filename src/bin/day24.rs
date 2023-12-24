@@ -168,7 +168,7 @@ fn planeify(points: &Vec<Hailstone3d>) -> Vec<Hailstone2d> {
         .collect::<Vec<_>>()
 }
 
-fn part_1_bounds(filename: &str) -> (i128,i128) {
+fn part_1_bounds(filename: &str) -> (i128, i128) {
     if filename.contains("ex") {
         (7, 27)
     } else {

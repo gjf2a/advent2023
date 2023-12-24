@@ -12,7 +12,7 @@ Patterns:
 * all 0 con: dh, db, sg, lm
 * all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh, gr
 * all 1: qq, bx, bc, gj (level 2 con), jm (level 4 con)
-* (0, 1): pl, xr, mn, xc (level 1 ff) 
+* (0, 1): pl, xr, mn, xc (level 1 ff)
 * (1, 2): pm, rh, sc, hv (level 2 ff)
 * (3, 4): nq, lp, xb, ks
 * (7, 8): nd, zl, dg, lz
