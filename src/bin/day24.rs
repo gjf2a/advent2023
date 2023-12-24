@@ -34,35 +34,17 @@ fn main() -> anyhow::Result<()> {
                         )
                     })
                     .collect::<Vec<_>>();
-                if options.len() > 0 {
-                    if options.contains(&"-input".to_owned()) {
-                        for point in points.iter() {
-                            println!("{} @ {}", point.0, point.1);
-                        }
-                    }
-                    if options.contains(&"-intersections".to_owned()) {
-                        for (i, (p1, d1)) in points.iter().enumerate() {
-                            let line1 = Line2D::new(&points[i]);
-                            for j in (i + 1)..points.len() {
-                                let line2 = Line2D::new(&points[j]);
-                                println!("A: {p1} @ {d1} ({line1})");
-                                println!("B: {} @ {} ({line2})", points[j].0, points[j].1);
-                                let intersection = line1.intersection(&line2);
-                                println!("{intersection:?}\n");
-                            }
-                        }
-                    }
-                    if options.contains(&"-future".to_owned()) {
-                        for (i, (p1, d1)) in points.iter().enumerate() {
-                            for j in (i + 1)..points.len() {
-                                println!("A: {p1} @ {d1}");
-                                println!("B: {} @ {}", points[j].0, points[j].1);
-                                let intersection = future_intersection(&(*p1, *d1), &points[j]);
-                                println!("{intersection:?}\n");
-                            }
+                view_one(&points, &options);
+                let (min, max) = if filename.contains("ex") {(7, 27)} else {(200000000000000, 400000000000000)};
+                let mut num_intersected = 0;
+                for i in 0..points.len() {
+                    for j in (i + 1)..points.len() {
+                        if within(future_intersection(&points[i], &points[j]), min, max).is_some() {
+                            num_intersected += 1;
                         }
                     }
                 }
+                println!("Part {part:?}: {num_intersected}");
             }
             Part::Two => {
                 if options.len() > 0 && options.contains(&"-input".to_owned()) {
@@ -142,5 +124,37 @@ impl Line2D {
 impl Display for Line2D {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} x + {} y = {}", self.a, self.b, self.c)
+    }
+}
+
+fn view_one(points: &Vec<Hailstone2d>, options: &[String]) {
+    if options.len() > 0 {
+        if options.contains(&"-input".to_owned()) {
+            for point in points.iter() {
+                println!("{} @ {}", point.0, point.1);
+            }
+        }
+        if options.contains(&"-intersections".to_owned()) {
+            for (i, (p1, d1)) in points.iter().enumerate() {
+                let line1 = Line2D::new(&points[i]);
+                for j in (i + 1)..points.len() {
+                    let line2 = Line2D::new(&points[j]);
+                    println!("A: {p1} @ {d1} ({line1})");
+                    println!("B: {} @ {} ({line2})", points[j].0, points[j].1);
+                    let intersection = line1.intersection(&line2);
+                    println!("{intersection:?}\n");
+                }
+            }
+        }
+        if options.contains(&"-future".to_owned()) {
+            for (i, (p1, d1)) in points.iter().enumerate() {
+                for j in (i + 1)..points.len() {
+                    println!("A: {p1} @ {d1}");
+                    println!("B: {} @ {}", points[j].0, points[j].1);
+                    let intersection = future_intersection(&(*p1, *d1), &points[j]);
+                    println!("{intersection:?}\n");
+                }
+            }
+        }
     }
 }
