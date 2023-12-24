@@ -12,7 +12,7 @@ Patterns:
 * all 0 con: dh, db, sg, lm
 * all 0 ff: tg, qj, jf, hn, tb, vt, lr, dx, cl, fr, gz, pz, xh, gr
 * all 1: qq, bx, bc, gj (level 2 con), jm (level 4 con)
-* (0, 1): pl, xr, mn, xc (level 1 ff)
+* (0, 1): pl, xr, mn, xc (level 1 ff) 
 * (1, 2): pm, rh, sc, hv (level 2 ff)
 * (3, 4): nq, lp, xb, ks
 * (7, 8): nd, zl, dg, lz
@@ -39,11 +39,13 @@ Patterns:
 * 4. Adjust offsets for its outputs.
 * 5. Keep going until they all reach zero at the same time.
 
+
+
 * Conjunction inputs:
-* qq: gv, pl, lz, rh, xf, hn, qj
-* bx: lr, zx, dg, nq, ms, xh, fr, vt, tb, xc, pm
-* gj: qc, sf, nd, sc, gc, xr, pz, cl, tr, sz, jf
-* bc: tg, zh, hk, st, nf, mn, dx
+* qq: pl, rh, lz, hn, gv, xf, qj
+* bx: xc, pm, nq, dg, zx, ms, xh, vt, lr, fr, tb
+* gj: xr, sc, nd, tr, sz, cl, jf, qc, sf, pz
+* bc: mn, zh, st, nf, tg, dx, hk
 *
 * dh: bc
 * db: bx
