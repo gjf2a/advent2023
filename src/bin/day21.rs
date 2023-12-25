@@ -47,19 +47,24 @@ fn bounded(p: Position, garden: &GridCharWorld) -> Position {
 
 struct RegionVisitRecord {
     received: IndexSet<Position>,
-    pending: IndexMap<ManhattanDir,IndexSet<Position>>
+    pending: IndexMap<ManhattanDir, IndexSet<Position>>,
 }
 
 impl RegionVisitRecord {
     fn new() -> Self {
-        let pending = all::<ManhattanDir>().map(|d| (d, IndexSet::new())).collect();
-        Self {pending, received: IndexSet::new()}
+        let pending = all::<ManhattanDir>()
+            .map(|d| (d, IndexSet::new()))
+            .collect();
+        Self {
+            pending,
+            received: IndexSet::new(),
+        }
     }
 
     fn regions_visited(&self) -> usize {
         self.received.len()
     }
-    
+
     fn receive_visit_from(&mut self, region: Position) {
         if !self.received.contains(&region) {
             self.received.insert(region);
@@ -152,7 +157,10 @@ impl UnboundedTable {
         }
         for (p, sources) in insertions {
             for src in sources.iter() {
-                self.table[target].get_mut(&p).unwrap().receive_visit_from(*src);
+                self.table[target]
+                    .get_mut(&p)
+                    .unwrap()
+                    .receive_visit_from(*src);
             }
         }
         for (p, dir) in removals {

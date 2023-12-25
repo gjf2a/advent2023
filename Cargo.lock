@@ -20,8 +20,8 @@ dependencies = [
 
 [[package]]
 name = "advent_code_lib"
-version = "0.25.0"
-source = "git+https://github.com/gjf2a/advent_code_lib#3f3a23c4ebb1c26fecb110a8abbb2f69f59cce11"
+version = "0.25.2"
+source = "git+https://github.com/gjf2a/advent_code_lib#7eed42e48b48202d124526145e4f18db7c082a2a"
 dependencies = [
  "anyhow",
  "bare_metal_modulo",
@@ -100,7 +100,7 @@ checksum = "eecf8589574ce9b895052fa12d69af7a233f99e6107f5cb8dd1044f2a17bfdcb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.42",
+ "syn 2.0.43",
 ]
 
 [[package]]
@@ -331,7 +331,7 @@ checksum = "43576ca501357b9b071ac53cdc7da8ef0cbd9493d8df094cd821777ea6e894d3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.42",
+ "syn 2.0.43",
 ]
 
 [[package]]
@@ -368,9 +368,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.42"
+version = "2.0.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b7d0a2c048d661a1a59fcd7355baa232f7ed34e0ee4df2eef3c1c1c0d3852d8"
+checksum = "ee659fb5f3d355364e1f3e5bc10fb82068efbf824a1e9d1c9504244a6469ad53"
 dependencies = [
  "proc-macro2",
  "quote",
