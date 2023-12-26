@@ -364,6 +364,7 @@ impl Module {
             Self::Conjunction(incoming) => {
                 *(incoming.get_mut(source).unwrap()) = input;
                 if incoming.values().all(|p| *p == Pulse::High) {
+                    if incoming.len() >= 5 {println!("All inputs High!");}
                     Some(Pulse::Low)
                 } else {
                     Some(Pulse::High)
