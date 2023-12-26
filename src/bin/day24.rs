@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use advent_code_lib::{all_lines, chooser_main, Part, Point};
+use num_rational::Ratio;
 
 fn main() -> anyhow::Result<()> {
     chooser_main(|filename, part, options| {
@@ -36,13 +37,13 @@ fn main() -> anyhow::Result<()> {
 type Hailstone2d = (Point<i128, 2>, Point<i128, 2>);
 type Hailstone3d = (Point<i128, 3>, Point<i128, 3>);
 
-fn within(intersection: Option<(f64, f64)>, min: i128, max: i128) -> Option<(f64, f64)> {
-    let min = min as f64;
-    let max = max as f64;
+fn within(intersection: Option<(Ratio<i128>, Ratio<i128>)>, min: i128, max: i128) -> Option<(Ratio<i128>, Ratio<i128>)> {
+    let min = Ratio::new(min, 1);
+    let max = Ratio::new(max, 1);
     intersection.filter(|(x, y)| min <= *x && *x <= max && min <= *y && *y <= max)
 }
 
-fn future_intersection(a: &Hailstone2d, b: &Hailstone2d) -> Option<(f64, f64)> {
+fn future_intersection(a: &Hailstone2d, b: &Hailstone2d) -> Option<(Ratio<i128>, Ratio<i128>)> {
     let line1 = Line2D::new(a);
     let line2 = Line2D::new(b);
     line1
@@ -50,20 +51,21 @@ fn future_intersection(a: &Hailstone2d, b: &Hailstone2d) -> Option<(f64, f64)> {
         .filter(|(_, y)| in_future(a, *y) && in_future(b, *y))
 }
 
-fn in_future(stone: &Hailstone2d, y: f64) -> bool {
+fn in_future(stone: &Hailstone2d, y: Ratio<i128>) -> bool {
     let (point, delta) = stone;
-    y > point[1] as f64 && delta[1] > 0 || y < point[1] as f64 && delta[1] < 0
+    let p_1 = Ratio::new(point[1], 1);
+    y > p_1 && delta[1] > 0 || y < p_1 && delta[1] < 0
 }
 
 // y = (rise/run)x + b
 // -rise/run x + y = b
 // -rise x + run y = run b
 struct Line2D {
-    slope: f64,
-    y_intercept: f64,
+    slope: Ratio<i128>,
+    y_intercept: Ratio<i128>,
     a: i128,
     b: i128,
-    c: f64,
+    c: Ratio<i128>,
 }
 
 impl Line2D {
@@ -71,11 +73,11 @@ impl Line2D {
         let (point, delta) = stone;
         let rise = delta[1];
         let run = delta[0];
-        let slope = rise as f64 / run as f64;
-        let y_intercept = point[1] as f64 - slope * point[0] as f64;
+        let slope = Ratio::new(rise, run);
+        let y_intercept = Ratio::new(point[1], 1) - slope * point[0];
         let a = -rise;
         let b = run;
-        let c = y_intercept * run as f64;
+        let c = y_intercept * run;
         Self {
             slope,
             y_intercept,
@@ -85,10 +87,10 @@ impl Line2D {
         }
     }
 
-    fn intersection(&self, other: &Self) -> Option<(f64, f64)> {
+    fn intersection(&self, other: &Self) -> Option<(Ratio<i128>, Ratio<i128>)> {
         if self.slope != other.slope {
-            let x = (self.c * other.b as f64 - self.b as f64 * other.c)
-                / (self.a * other.b - self.b * other.a) as f64;
+            let x = (self.c * other.b - other.c * self.b)
+                / (self.a * other.b - self.b * other.a);
             let y = self.slope * x + self.y_intercept;
             Some((x, y))
         } else {
