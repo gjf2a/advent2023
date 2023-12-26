@@ -39,7 +39,9 @@ Patterns:
 * 4. Adjust offsets for its outputs.
 * 5. Keep going until they all reach zero at the same time.
 
-
+qq outputs zero at 3851.
+* lp, pl, and bt are all affected, but gr, cv, and vq are not.
+* They, in turn, affect other flip-flops, which cause qq to output one again by the end of 3851.
 
 * Conjunction inputs:
 * qq: pl, rh, lz, hn, gv, xf, qj
@@ -53,6 +55,8 @@ Patterns:
 * lm: qq
 *
 * jm: sg, lm, dh, db
+
+
  */
 
 fn main() -> anyhow::Result<()> {
