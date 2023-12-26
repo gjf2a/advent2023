@@ -67,38 +67,115 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {}", circuit.score());
             }
             Part::Two => {
-                let pushes = options[0].parse::<usize>().unwrap();
-                circuit.push_button();
-                println!("After one push:\n{}", circuit.stats);
-                for _ in 1..pushes {
-                    circuit.push_button();
+                if options.contains(&"-expr".to_string()) {
+                    let periods = [
+                        ["pl", "xr", "mn", "xc"], 
+                        ["pm", "rh", "sc", "hv"],
+                        ["nq", "lp", "xb", "ks"],
+                        ["nd", "zl", "dg", "lz"],
+                        ["cv", "tr", "zh", "ll"],
+                        ["sz", "vq", "zx", "st"],
+                        ["bt", "ld", "ms", "mm"],
+                        ["gr", "cl", "xh", "gz"],
+                        ["hn", "jf", "vt", "nf"],
+                        ["gv", "qc", "lr", "tg"],
+                        ["xf", "sf", "fr", "dx"],
+                        ["qj", "pz", "tb", "hk"],
+                    ];
+                    let mut flip_flops = IndexMap::new();
+                    for (i, period) in periods.iter().enumerate() {
+                        for name in period.iter() {
+                            flip_flops.insert(name.to_string(), FlipFlopTracker::new(i));
+                        }
+                    }
+
+                    let conjunction_inputs = [
+                        ("qq", vec!["pl", "rh", "lz", "hn", "gv", "xf", "qj"]),
+                        ("bx", vec!["xc", "pm", "nq", "dg", "zx", "ms", "xh", "vt", "lr", "fr", "tb"]),
+                        ("gj", vec!["xr", "sc", "nd", "tr", "sz", "cl", "jf", "qc", "sf", "pz"]),
+                        ("bc", vec!["mn", "zh", "st", "nf", "tg", "dx", "hk"])];
+                    let mut conjunctions = IndexMap::new();
+                    for (name, flips) in conjunction_inputs.iter() {
+                        conjunctions.insert(name.to_string(), ConjunctionTracker::new(&flips, &flip_flops));
+                    }
+
+                    for (name, conjunction) in conjunctions.iter() {
+                        println!("Checking earliest for {name}...");
+                        let earliest = conjunction.earliest_all_sources_on(&flip_flops);
+                        println!("{earliest}");
+                    }
+
+                } else {
+                    let pushes = options[0].parse::<usize>().unwrap();
+                    illustrate(&mut circuit, pushes);
                 }
-                circuit.print_outcomes();
-                let ff = circuit
-                    .connections
-                    .iter()
-                    .filter(|(_, (m, _))| match m {
-                        Module::FlipFlop(_) => true,
-                        _ => false,
-                    })
-                    .map(|(n, _)| n)
-                    .collect::<Vec<_>>();
-                println!("flip-flops: {ff:?}");
-                let con = circuit
-                    .connections
-                    .iter()
-                    .filter(|(_, (m, _))| match m {
-                        Module::Conjunction(_) => true,
-                        _ => false,
-                    })
-                    .map(|(n, _)| n)
-                    .collect::<Vec<_>>();
-                println!("conjuncts:  {con:?}");
-                //println!("After {pushes} pushes:\n{}", circuit.stats);
             }
         }
         Ok(())
     })
+}
+
+struct FlipFlopTracker {
+    start: usize,
+    period: usize,
+    zeros: Vec<usize>
+}
+
+impl FlipFlopTracker {
+    fn new(array_index: usize) -> Self {
+        let period = 2_usize.pow(array_index as u32);
+        let start = period - 1;
+        let advances = vec![];
+        Self {start, period, zeros: advances}
+    }
+
+    fn add_zero_at(&mut self, zero: usize) {
+        self.zeros.push(zero);
+    }
+
+    fn is_on(&self, time_step: usize) -> bool {
+        if time_step >= self.start {
+            let period_index = (time_step - self.start) / self.period;
+            period_index % 2 == 0
+        } else {
+            false
+        }
+    }
+
+    fn next_on_step(&self, current_step: usize) -> usize {
+        if self.is_on(current_step) {
+            current_step
+        } else if current_step < self.start {
+            self.start
+        } else {
+            let period_offset = (current_step - self.start) % self.period;
+            current_step + self.period - period_offset
+        }
+    }
+}
+
+struct ConjunctionTracker {
+    sources: Vec<String>
+}
+
+impl ConjunctionTracker {
+    fn new(sources: &[&str], flip_flops: &IndexMap<String, FlipFlopTracker>) -> Self {
+        let mut sources = sources.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        sources.sort_by_key(|k| flip_flops.get(k.as_str()).unwrap().period);
+        sources.reverse();
+        Self {sources}
+    }
+
+    fn earliest_all_sources_on(&self, flip_flops: &IndexMap<String, FlipFlopTracker>) -> usize {
+        let mut earliest = 0;
+        while !self.sources.iter().all(|s| flip_flops.get(s.as_str()).unwrap().is_on(earliest)) {
+            for s in self.sources.iter() {
+                earliest = flip_flops.get(s.as_str()).unwrap().next_on_step(earliest);
+                println!("{earliest}");
+            }
+        }
+        earliest
+    }
 }
 
 #[derive(Debug)]
@@ -343,5 +420,60 @@ impl FlipFlopState {
             Self::Off => Self::On,
             Self::On => Self::Off,
         };
+    }
+}
+
+fn illustrate(circuit: &mut Circuit, pushes: usize) {
+    circuit.push_button();
+    println!("After one push:\n{}", circuit.stats);
+    for _ in 1..pushes {
+        circuit.push_button();
+    }
+    circuit.print_outcomes();
+    let ff = circuit
+        .connections
+        .iter()
+        .filter(|(_, (m, _))| match m {
+            Module::FlipFlop(_) => true,
+            _ => false,
+        })
+        .map(|(n, _)| n)
+        .collect::<Vec<_>>();
+    println!("flip-flops: {ff:?}");
+    let con = circuit
+        .connections
+        .iter()
+        .filter(|(_, (m, _))| match m {
+            Module::Conjunction(_) => true,
+            _ => false,
+        })
+        .map(|(n, _)| n)
+        .collect::<Vec<_>>();
+    println!("conjuncts:  {con:?}");
+    //println!("After {pushes} pushes:\n{}", circuit.stats);
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::max;
+
+    use crate::FlipFlopTracker;
+
+    #[test]
+    fn test_ff_cycler() {
+        for i in 0..=11 {
+            test_ff_cycler_generic(i, 10000);
+        }
+    }
+
+    fn test_ff_cycler_generic(array_index: usize, num_tests: usize) {
+        let t = FlipFlopTracker::new(array_index);
+        let num_tests = max(num_tests, t.start * 2);
+        for i in 0..t.start {
+            assert!(!t.is_on(i));
+        }
+        for i in t.start..num_tests {
+            assert_eq!((i - t.start) % (t.period * 2) < t.period, t.is_on(i));
+        }
     }
 }
