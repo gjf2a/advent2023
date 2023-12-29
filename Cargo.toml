@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 advent_code_lib = {git = "https://github.com/gjf2a/advent_code_lib"}
+point_set = {git = "https://github.com/gjf2a/point_set"}
 anyhow = "1"
 map-macro = "0.2.6"
 indexmap = "2.1.0"
@@ -17,3 +18,4 @@ gapbuf = "0.1.4"
 num-integer = "0.1.45"
 im = "15.1.0"
 num-rational = "0.4.1"
+nalgebra = "0.32.3"

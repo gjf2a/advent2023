@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use advent_code_lib::{all_lines, chooser_main, Part, Point};
+use nalgebra::Matrix3;
 use num_rational::Ratio;
 
 fn main() -> anyhow::Result<()> {
@@ -23,9 +24,42 @@ fn main() -> anyhow::Result<()> {
                 println!("Part {part:?}: {num_intersected}");
             }
             Part::Two => {
-                if options.len() > 0 && options.contains(&"-input".to_owned()) {
+                if options.contains(&"-input".to_owned()) {
                     for point in points.iter() {
                         println!("{} @ {}", point.0, point.1);
+                    }
+                }
+                if options.contains(&"-coplanar".to_owned()) {
+                    let (p1, delta1) = points[0];
+                    for (point, delta) in points.iter().skip(1) {
+                        // Pick t1 and t2 so that the rank is 1.
+                        // To do that, each row must be linear combos of the others.
+                        // p1 - (p3 + t2 * delta) == c1 * (p3 - (p3 + t2 * delta))
+                        // => p1 - p3 - t2 * delta == c1 * p3 - c1 * (p3 + t2 * delta)
+                        // => p1 - p3 - t2 * delta == c1 * p3 - c1 * p3 - c1 * t2 * delta
+                        // => p1 - p3 - t2 * delta == -c1 * t2 * delta
+                        // => p1 - p3 == -c1 * t2 * delta + t2 * delta
+                        // => p1 - p3 == t2 * delta * (-c1 + 1)
+                        // => t2 == (p1 - p3) / (delta * (1 - c1))
+                        //
+                        // p1 - (p3 + t2 * delta) == c2 * ((p1 + t1 * delta1) - (p3 + t2 * delta))
+                        // => p1 - p3 - t2 * delta == c2 * (p1 + t1 * delta1) - c2 * (p3 + t2 * delta)
+                        // => p1 - p3 - t2 * delta == c2 * p1 + c2 * t1 * delta1 - c2 * p3 - c2 * t2 * delta
+                        // => -p3 - t2 * delta == (c2 - 1) * p1 + c2 * t1 * delta1 - c2 * p3 - c2 * t2 * delta
+                        // => -t2 * delta == (c2 - 1) * p1 + c2 * t1 * delta1 - c2 * p3 - c2 * t2 * delta + p3
+                        // => -t2 * delta == (c2 - 1) * p1 + c2 * t1 * delta1 + (1 - c2) * p3 - c2 * t2 * delta
+                        // => 
+                        let mut t1 = 1;
+                        let p2 = p1 + delta1 * t1;
+                        let p3 = *point;
+                        let mut t2 = 1;
+                        let p4 = p3 + *delta * t2;
+                        let matrix = Matrix3::new(
+                            (p1[0] - p4[0]) as f64, (p1[1] - p4[1]) as f64, (p1[2] - p4[2]) as f64,
+                            (p2[0] - p4[0]) as f64, (p2[1] - p4[1]) as f64, (p2[2] - p4[2]) as f64,
+                            (p3[0] - p4[0]) as f64, (p3[1] - p4[1]) as f64, (p3[2] - p4[2]) as f64,
+                        );
+                        println!("Rank of matrix: {}", matrix.rank(0.0));
                     }
                 }
             }
