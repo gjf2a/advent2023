@@ -46,6 +46,26 @@ fn bounded(p: Position, garden: &GridCharWorld) -> Position {
     }
 }
 
+struct CountingTable {
+    garden: GridCharWorld,
+    table: [IndexMap<Position, CountingRecord>; 2],
+    current: ModNumC<usize, 2>,
+    wrap: bool,
+}
+
+impl CountingTable {
+    fn new(garden: &GridCharWorld, wrap: bool) -> Self {
+        let mut result = Self {garden: garden.clone(), table: [IndexMap::new(), IndexMap::new()], current: ModNumC::new(0), wrap};
+        
+        result
+    }
+}
+
+struct CountingRecord {
+    earliest_signal_from: IndexMap<ManhattanDir, u128>,
+    num_visits: u128,
+}
+
 struct RegionVisitRecord {
     received: PointSet,
     pending: IndexMap<ManhattanDir, IndexSet<Position>>,
