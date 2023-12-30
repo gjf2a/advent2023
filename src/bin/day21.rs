@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
             ),
         };
 
-        let mut table = UnboundedTable::new(&garden, wrap);
+        let mut table = CountingTable::new(&garden, wrap);
         for i in 0..iterations {
             table.expand_once();
             if i % 100 == 0 {
@@ -49,21 +49,89 @@ fn bounded(p: Position, garden: &GridCharWorld) -> Position {
 struct CountingTable {
     garden: GridCharWorld,
     table: [IndexMap<Position, CountingRecord>; 2],
-    current: ModNumC<usize, 2>,
+    current: usize,
     wrap: bool,
 }
 
 impl CountingTable {
     fn new(garden: &GridCharWorld, wrap: bool) -> Self {
-        let mut result = Self {garden: garden.clone(), table: [IndexMap::new(), IndexMap::new()], current: ModNumC::new(0), wrap};
-        
+        let mut result = Self {garden: garden.clone(), table: [IndexMap::new(), IndexMap::new()], current: 0, wrap};
+        for i in 0..result.table.len() {
+            for (p, v) in garden.position_value_iter().filter(|(_,v)| **v != '#') {
+                result.table[i].insert(*p, if *v == 'S' && i == 0 {CountingRecord::start()} else {CountingRecord::new()});
+            }
+        }
         result
+    }
+
+    fn current_reachable(&self) -> u128 {
+        self.table[self.current % 2]
+            .iter()
+            .map(|(_, sources)| sources.total_visits)
+            .sum()
+    }
+
+    fn expand_once(&mut self) {
+        let source = self.current % 2;
+        let target = (self.current + 1) % 2;
+        let target_positions = self.table[target].keys().copied().collect::<Vec<_>>();
+        for target_pos in target_positions {
+            let mut neighbor_visits = IndexMap::new();
+            for dir in all::<ManhattanDir>() {
+                if let Some(neighbor) = self.get_neighbor_for(dir, target_pos) {
+                    let neighbor_visit = self.table[source].get(&neighbor).unwrap().total_visits;
+                    if neighbor_visit > 0 {
+                        let target_counter = self.table[target].get_mut(&target_pos).unwrap();
+                        if !target_counter.earliest_signal_from.contains_key(&dir) {
+                            target_counter.earliest_signal_from.insert(dir, self.current);
+                        }
+                        if let Some(earliest) = target_counter.earliest_signal_from.get(&dir).copied() {
+                            if self.current % earliest == 0 {
+                                neighbor_visits.insert(dir, neighbor_visit);
+                            }
+                        }
+                    }
+                }
+            }        
+            if let Some(new_visits) = neighbor_visits.values().max() {
+                self.table[target].get_mut(&target_pos).unwrap().total_visits += new_visits;
+            }
+        }
+    }
+
+    fn get_neighbor_for(&self, dir: ManhattanDir, target_pos: Position) -> Option<Position> {
+        let mut neighbor = dir.next_position(target_pos);
+        if !self.garden.in_bounds(neighbor) {
+            if self.wrap {
+                neighbor = Position {row: neighbor.row % self.garden.height() as isize, col: neighbor.col & self.garden.width() as isize};
+            } else {
+                return None;
+            }
+        }
+        if self.garden.value(neighbor).unwrap() == '#' {
+            None
+        } else {
+            Some(neighbor)
+        }
     }
 }
 
 struct CountingRecord {
-    earliest_signal_from: IndexMap<ManhattanDir, u128>,
-    num_visits: u128,
+    earliest_signal_from: IndexMap<ManhattanDir, usize>,
+    num_visits_from: IndexMap<ManhattanDir, u128>,
+    total_visits: u128,
+}
+
+impl CountingRecord {
+    fn new() -> Self {
+        Self {earliest_signal_from: IndexMap::new(), num_visits_from: all::<ManhattanDir>().map(|d| (d, 0)).collect(), total_visits: 0}
+    }
+
+    fn start() -> Self {
+        let mut start = Self::new();
+        start.total_visits = 1;
+        start
+    }
 }
 
 struct RegionVisitRecord {
