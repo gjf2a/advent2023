@@ -64,10 +64,11 @@ fn main() -> anyhow::Result<()> {
         let mut circuit = Circuit::from(filename)?;
         match part {
             Part::One => {
-                for _ in 0..1000 {
+                let cycles = if options.len() == 0 {1000} else {options[0].parse::<usize>().unwrap()};
+                for _ in 0..cycles {
                     circuit.push_button();
                 }
-                println!("{circuit:?}");
+                println!("{:?}", circuit.current_pulses());
                 println!("Part {part:?}: {}", circuit.score());
             }
             Part::Two => {
@@ -198,6 +199,10 @@ impl Circuit {
         all::<Pulse>()
             .map(|p| self.pulse_count.count(&p) as u64)
             .product()
+    }
+
+    fn current_pulses(&self) -> IndexMap<String,Pulse> {
+        self.pulses_at_end.iter().map(|(k, v)| (k.clone(), v.last().copied().unwrap())).collect()
     }
 
     fn push_button(&mut self) {
